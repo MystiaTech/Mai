@@ -1,18 +1,60 @@
 # Python
-__pycache__/
-*.py[cod]
-
-# venv
 .venv/
 venv/
+env/
+ENV/
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
 
-# tooling
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Testing
 .pytest_cache/
-.ruff_cache/
+.coverage
+htmlcov/
+
+# Project-specific
+config.yaml
+logs/
+*.log
+models/
+cache/
+.planning/STATE.md
+.planning/PHASE-*-PLAN.md
+
+# Discord
+.env
+.discord_token
+
+# Android
+android/app/build/
+android/.gradle/
+android/local.properties
 
 # OS
-.DS_Store
-Thumbs.db
-
-# generated
-.planning/CONTEXTPACK.md
+*.tmp
+*.bak

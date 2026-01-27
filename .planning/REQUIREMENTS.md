@@ -92,19 +92,20 @@
 
 **Out of scope for v1:**
 - Web interface
-- Mobile apps
 - Multi-user support
 - Cloud hosting
 - Enterprise features
 - Third-party integrations beyond Discord
 - Plugin system
 - API for external developers
+- Cloud sync/backup
 
 **Phase Boundary:**
-- **v1 Focus:** Personal AI assistant for individual use
+- **v1 Focus:** Personal AI assistant for desktop and Android with visual presence
 - **Local First:** All data stored locally, no cloud dependencies
 - **Privacy:** User data never leaves local system
-- **Simplicity:** Clear separation of concerns across phases
+- **Cross-device:** Sync between desktop and Android instances
+- **Visual:** Avatar and voice visualization for richer interaction
 
 ---
 
@@ -244,15 +245,58 @@
 | OFFLINE-06 | Phase 11 | Pending |
 | OFFLINE-07 | Phase 11 | Pending |
 
+### Voice Visualization (VISUAL)
+| Requirement | Phase | Status | Implementation Notes |
+|------------|-------|--------|-------------------|
+| VISUAL-01 | Phase 12 | Pending |
+| VISUAL-02 | Phase 12 | Pending |
+| VISUAL-03 | Phase 12 | Pending |
+| VISUAL-04 | Phase 12 | Pending |
+| VISUAL-05 | Phase 12 | Pending |
+
+### Desktop Avatar (AVATAR)
+| Requirement | Phase | Status | Implementation Notes |
+|------------|-------|--------|-------------------|
+| AVATAR-01 | Phase 13 | Pending |
+| AVATAR-02 | Phase 13 | Pending |
+| AVATAR-03 | Phase 13 | Pending |
+| AVATAR-04 | Phase 13 | Pending |
+| AVATAR-05 | Phase 13 | Pending |
+| AVATAR-06 | Phase 13 | Pending |
+
+### Android App (ANDROID)
+| Requirement | Phase | Status | Implementation Notes |
+|------------|-------|--------|-------------------|
+| ANDROID-01 | Phase 14 | Pending |
+| ANDROID-02 | Phase 14 | Pending |
+| ANDROID-03 | Phase 14 | Pending |
+| ANDROID-04 | Phase 14 | Pending |
+| ANDROID-05 | Phase 14 | Pending |
+| ANDROID-06 | Phase 14 | Pending |
+| ANDROID-07 | Phase 14 | Pending |
+| ANDROID-08 | Phase 14 | Pending |
+| ANDROID-09 | Phase 14 | Pending |
+| ANDROID-10 | Phase 14 | Pending |
+
+### Device Synchronization (SYNC)
+| Requirement | Phase | Status | Implementation Notes |
+|------------|-------|--------|-------------------|
+| SYNC-01 | Phase 15 | Pending |
+| SYNC-02 | Phase 15 | Pending |
+| SYNC-03 | Phase 15 | Pending |
+| SYNC-04 | Phase 15 | Pending |
+| SYNC-05 | Phase 15 | Pending |
+| SYNC-06 | Phase 15 | Pending |
+
 ---
 
 ## Validation
 
-- Total v1 requirements: **74**
-- Mapped to phases: **74**
+- Total v1 requirements: **99** (74 core + 25 new features)
+- Mapped to phases: **99**
 - Unmapped: **0** ✓
-- Coverage: **10100%**
+- Coverage: **100%**
 
 ---
 *Requirements defined: 2026-01-24*
-*Phase 5 conversation engine completed: 2026-01-26*
+*Last updated: 2026-01-26 - reset to fresh slate with Android, visualizer, and avatar features*

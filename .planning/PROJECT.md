@@ -2,7 +2,7 @@
 
 ## What This Is
 
-Mai is an autonomous conversational AI agent framework that runs locally-first and can improve her own code. She's a genuinely intelligent companion — not a rigid chatbot — with a distinct personality, long-term memory, and agency. She analyzes her own performance, proposes improvements for your review, and auto-applies non-breaking changes. She can run offline, across devices (laptop to Android), and switch between available models intelligently.
+Mai is an autonomous conversational AI agent framework that runs locally-first and can improve her own code. She's a genuinely intelligent companion — not a rigid chatbot — with a distinct personality, long-term memory, and agency. She analyzes her own performance, proposes improvements for your review, and auto-applies non-breaking changes. Mai has a visual presence through a desktop avatar (image or VRoid model), real-time voice visualization for conversations, and a native Android app that syncs with desktop instances while working completely offline.
 
 ## Core Value
 
@@ -65,6 +65,26 @@ Mai is a real collaborator, not a tool. She learns from you, improves herself, h
 - [ ] Message queuing when offline
 - [ ] Graceful degradation (smaller models if resources tight)
 
+**Voice Visualization**
+- [ ] Real-time visualization of audio input during voice conversations
+- [ ] Low-latency waveform/frequency display
+- [ ] Visual feedback for speech detection and processing
+- [ ] Works on both desktop and Android
+
+**Desktop Avatar**
+- [ ] Visual representation using static image or VRoid model
+- [ ] Avatar expressions respond to conversation context (mood/state)
+- [ ] Runs efficiently on RTX3060 and mobile devices
+- [ ] Customizable appearance (multiple models or user-provided image)
+
+**Android App**
+- [ ] Native Android app with local model inference
+- [ ] Standalone operation (works without desktop instance)
+- [ ] Syncs conversation history and memory with desktop
+- [ ] Voice input/output with low-latency processing
+- [ ] Avatar and visualizer integrated in mobile UI
+- [ ] Efficient resource management for battery and CPU
+
 **Dashboard ("Brain Interface")**
 - [ ] View Mai's current state (personality, memory size, mood/health)
 - [ ] Approve/reject pending code changes with reviewer feedback
@@ -85,9 +105,9 @@ Mai is a real collaborator, not a tool. She learns from you, improves herself, h
 - **Task automation (v1)** — Mai can discuss tasks but won't execute arbitrary workflows yet (v2)
 - **Server monitoring** — Not included in v1 scope (v2)
 - **Finetuning** — Mai improves through code changes and learned behaviors, not model tuning
-- **Cloud sync** — Intentionally local-first; cloud sync deferred to later if needed
+- **Cloud sync** — Intentionally local-first; cloud backup deferred to later if needed
 - **Custom model training** — v1 uses available models; custom training is v2+
-- **Mobile app** — v1 is CLI/Discord; native Android is future (baremetal eventual goal)
+- **Web interface** — v1 is CLI, Discord, and native apps (web UI is v2+)
 
 ## Context
 
@@ -101,12 +121,15 @@ Mai is a real collaborator, not a tool. She learns from you, improves herself, h
 
 ## Constraints
 
-- **Hardware baseline**: Must run on RTX3060; eventually Android (baremetal)
-- **Offline-first**: All core functionality works without internet
-- **Local models only**: No cloud APIs for core inference (LMStudio)
-- **Python stack**: Primary language for Mai's codebase
+- **Hardware baseline**: Must run on RTX3060 (desktop) and modern Android devices (2022+)
+- **Offline-first**: All core functionality works without internet on all platforms
+- **Local models only**: No cloud APIs for core inference (LMStudio/Ollama)
+- **Mixed stack**: Python (core/desktop), Kotlin (Android), React/TypeScript (UIs)
 - **Approval required**: No unguarded code execution; second-agent review + user approval on breaking changes
 - **Git tracked**: All of Mai's code changes version-controlled locally
+- **Sync consistency**: Desktop and Android instances maintain synchronized state without server
+- **OpenCode-driven**: All development phases executed through Claude Code (GSD workflow)
+- **Python venv**: `.venv` virtual environment for all Python dependencies
 
 ## Key Decisions
 
@@ -118,4 +141,4 @@ Mai is a real collaborator, not a tool. She learns from you, improves herself, h
 | v1 is core systems only | Deliver solid foundation before adding task automation/monitoring | — Pending |
 
 ---
-*Last updated: 2026-01-24 after deep questioning*
+*Last updated: 2026-01-26 after adding Android, visualizer, and avatar to v1*
