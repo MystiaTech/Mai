@@ -1,0 +1,54 @@
+# Sandbox Security Policies and Resource Limits
+
+# Docker image for sandbox execution
+image: "python:3.11-slim"
+
+# Resource quotas based on trust level
+resources:
+  # Default/trusted code limits
+  cpu_count: 2
+  mem_limit: "1g"
+  timeout: 120  # seconds
+  pids_limit: 100
+  
+  # Dynamic allocation rules will adjust these based on trust level
+
+# Security hardening settings
+security:
+  read_only: true
+  security_opt:
+    - "no-new-privileges"
+  cap_drop:
+    - "ALL"
+  user: "1000:1000"  # Non-root user
+  
+# Network policies
+network:
+  network_mode: "none"  # No network access by default
+  # For dependency fetching, specific network whitelist could be added here
+
+# Trust level configurations
+trust_levels:
+  untrusted:
+    cpu_count: 1
+    mem_limit: "512m"
+    timeout: 30
+    pids_limit: 50
+    
+  trusted:
+    cpu_count: 2
+    mem_limit: "1g"
+    timeout: 120
+    pids_limit: 100
+    
+  unknown:
+    cpu_count: 1
+    mem_limit: "256m"
+    timeout: 15
+    pids_limit: 25
+
+# Monitoring and logging
+monitoring:
+  enable_stats: true
+  log_level: "INFO"
+  max_execution_time: 300  # Maximum allowed execution time in seconds
