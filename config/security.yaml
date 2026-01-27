@@ -1,0 +1,116 @@
+# Security Assessment Configuration
+# Defines policies for code security analysis and categorization
+
+policies:
+  # BLOCKED level triggers - these patterns indicate malicious intent
+  blocked_patterns:
+    - "os.system"
+    - "subprocess.call"
+    - "subprocess.run"
+    - "eval("
+    - "exec("
+    - "__import__"
+    - "open("
+    - "file("
+    - "input("
+    - "compile("
+    - "globals()"
+    - "locals()"
+    - "vars()"
+    - "dir()"
+    - "hasattr("
+    - "getattr("
+    - "setattr("
+    - "delattr("
+    - "callable("
+    - "__class__"
+    - "__base__"
+    - "__subclasses__"
+    - "__mro__"
+
+  # HIGH level triggers - privileged access or system modifications
+  high_triggers:
+    - "admin"
+    - "root"
+    - "sudo"
+    - "passwd"
+    - "shadow"
+    - "system32"
+    - "/etc/passwd"
+    - "/etc/shadow"
+    - "/etc/sudoers"
+    - "chmod 777"
+    - "chown root"
+    - "mount"
+    - "umount"
+    - "fdisk"
+    - "mkfs"
+    - "iptables"
+    - "service"
+    - "systemctl"
+
+  # Scoring thresholds for security level determination
+  thresholds:
+    blocked_score: 10    # >= 10 points = BLOCKED
+    high_score: 7        # >= 7 points = HIGH
+    medium_score: 4       # >= 4 points = MEDIUM
+    # < 4 points = LOW
+
+# Static analysis tool configurations
+tools:
+  bandit:
+    enabled: true
+    timeout: 30  # seconds
+    exclude_tests: []  # Add test IDs to exclude if needed
+    
+  semgrep:
+    enabled: true
+    timeout: 30  # seconds
+    ruleset: "p/python"  # Python security rules
+    config: "auto"  # Auto-detect best configuration
+
+# Trusted code patterns that should reduce false positives
+trusted_patterns:
+  - "from typing import"
+  - "from dataclasses import"
+  - "def __init__"
+  - "return self"
+  - "if __name__ =="
+  - "logging.basicConfig"
+  - "print("  # Allow print statements for debugging
+
+# User override settings
+overrides:
+  allow_user_override: true
+  require_confirmation:
+    - BLOCKED
+    - HIGH
+  auto_allow:
+    - LOW
+    - MEDIUM
+
+# Assessment settings
+assessment:
+  max_code_length: 50000  # Maximum code length to analyze
+  temp_dir: "/tmp"  # Directory for temporary files
+  cleanup_temp: true  # Clean up temporary files after analysis
+  
+# Severity weighting
+severity_weights:
+  # Bandit severity weights
+  bandit:
+    HIGH: 3
+    MEDIUM: 2
+    LOW: 1
+    
+  # Semgrep severity weights  
+  semgrep:
+    ERROR: 3
+    WARNING: 2
+    INFO: 1
+    
+  # Custom finding weights
+  custom:
+    blocked_pattern: 5
+    high_risk_pattern: 3
+    suspicious_import: 1

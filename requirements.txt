@@ -3,3 +3,5 @@ psutil>=6.1.0
 pydantic>=2.10
 pyyaml>=6.0
 gpu-tracker>=5.0.1
+bandit>=1.7.7
+semgrep>=1.99
