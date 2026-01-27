@@ -13,5 +13,27 @@
     "auto_push": true,
     "push_tags": true,
     "remote": "master"
+  },
+  "mcp": {
+    "huggingface": {
+      "enabled": true,
+      "authenticated_user": "mystiatech",
+      "default_result_limit": 10,
+      "use_for": [
+        "model_discovery",
+        "dataset_research",
+        "paper_search",
+        "documentation_lookup"
+      ]
+    },
+    "web_research": {
+      "enabled": true,
+      "use_for": [
+        "current_practices",
+        "library_research",
+        "architecture_patterns",
+        "security_best_practices"
+      ]
+    }
   }
 }

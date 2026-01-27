@@ -113,7 +113,7 @@ Mai is a real collaborator, not a tool. She learns from you, improves herself, h
 
 **Why this matters:** Current AI systems are static, sterile, and don't actually learn. Users have to explain context every time. Mai is different — she has continuity, personality, agency, and actually improves over time. Starting with a solid local framework means she can eventually run anywhere without cloud dependency.
 
-**Technical environment:** Python-based, local models via LMStudio, git for version control of her own code, Discord API for chat, lightweight local storage for memory. Eventually targeting bare metal on low-end devices.
+**Technical environment:** Python-based, local models via LMStudio/Ollama, git for version control, Discord API for chat, lightweight local storage for memory. Development leverages Hugging Face Hub for model/dataset discovery and research, WebSearch for current best practices. Eventually targeting bare metal on low-end devices.
 
 **User feedback theme:** Traditional chatbots feel rigid and repetitive. Mai should feel like talking to an actual person who gets better at understanding you.
 
@@ -130,6 +130,7 @@ Mai is a real collaborator, not a tool. She learns from you, improves herself, h
 - **Sync consistency**: Desktop and Android instances maintain synchronized state without server
 - **OpenCode-driven**: All development phases executed through Claude Code (GSD workflow)
 - **Python venv**: `.venv` virtual environment for all Python dependencies
+- **MCP-enabled**: Leverages Hugging Face Hub, WebSearch, and code tools for research and implementation
 
 ## Key Decisions
 
