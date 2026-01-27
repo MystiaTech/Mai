@@ -8,5 +8,10 @@
     "research": true,
     "plan_check": true,
     "verifier": true
+  },
+  "git": {
+    "auto_push": true,
+    "push_tags": true,
+    "remote": "master"
   }
 }
