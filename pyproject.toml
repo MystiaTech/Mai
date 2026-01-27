@@ -1,0 +1,48 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mai"
+version = "0.1.0"
+description = "Autonomous conversational AI agent with local model inference"
+readme = "README.md"
+requires-python = ">=3.8"
+license = {text = "MIT"}
+authors = [
+    {name = "Mai Project", email = "mai@example.com"}
+]
+keywords = ["ai", "agent", "local-llm", "conversation"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+]
+
+dependencies = [
+    "lmstudio>=1.0.1",
+    "psutil>=6.1.0", 
+    "pydantic>=2.10",
+    "pyyaml>=6.0",
+]
+
+[project.optional-dependencies]
+gpu = [
+    "gpu-tracker>=5.0.1",
+]
+
+[project.urls]
+Homepage = "https://github.com/mai/mai"
+Repository = "https://github.com/mai/mai"
+Issues = "https://github.com/mai/mai/issues"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+mai = ["config/*.yaml"]

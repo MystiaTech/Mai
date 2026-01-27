@@ -1,0 +1,5 @@
+lmstudio>=1.0.1
+psutil>=6.1.0
+pydantic>=2.10
+pyyaml>=6.0
+gpu-tracker>=5.0.1
