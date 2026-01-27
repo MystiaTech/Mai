@@ -5,6 +5,15 @@ import time
 from typing import Dict, List, Optional, Tuple
 import logging
 
+# Try to import pynvml for NVIDIA GPU monitoring
+try:
+    import pynvml
+
+    PYNVML_AVAILABLE = True
+except ImportError:
+    PYNVML_AVAILABLE = False
+    pynvml = None
+
 
 class ResourceMonitor:
     """Monitor system resources for model selection decisions."""
@@ -33,6 +42,11 @@ class ResourceMonitor:
             - cpu_percent: CPU usage percentage (0-100)
             - available_memory_gb: Available RAM in GB
             - gpu_vram_gb: Available GPU VRAM in GB (0 if no GPU)
+            - gpu_total_vram_gb: Total VRAM capacity in GB (0 if no GPU)
+            - gpu_used_vram_gb: Used VRAM in GB (0 if no GPU)
+            - gpu_free_vram_gb: Available VRAM in GB (0 if no GPU)
+            - gpu_utilization_percent: GPU utilization (0-100, 0 if no GPU)
+            - gpu_temperature_c: GPU temperature in Celsius (0 if no GPU)
         """
         try:
             # Memory information
@@ -44,13 +58,20 @@ class ResourceMonitor:
             cpu_percent = psutil.cpu_percent(interval=1)
 
             # GPU information (if available)
-            gpu_vram_gb = self._get_gpu_memory()
+            gpu_info = self._get_gpu_info()
 
             return {
                 "memory_percent": memory_percent,
                 "cpu_percent": cpu_percent,
                 "available_memory_gb": available_memory_gb,
-                "gpu_vram_gb": gpu_vram_gb,
+                "gpu_vram_gb": gpu_info.get(
+                    "free_vram_gb", 0.0
+                ),  # Backward compatibility
+                "gpu_total_vram_gb": gpu_info.get("total_vram_gb", 0.0),
+                "gpu_used_vram_gb": gpu_info.get("used_vram_gb", 0.0),
+                "gpu_free_vram_gb": gpu_info.get("free_vram_gb", 0.0),
+                "gpu_utilization_percent": gpu_info.get("utilization_percent", 0.0),
+                "gpu_temperature_c": gpu_info.get("temperature_c", 0.0),
             }
 
         except Exception as e:
@@ -60,6 +81,11 @@ class ResourceMonitor:
                 "cpu_percent": 0.0,
                 "available_memory_gb": 0.0,
                 "gpu_vram_gb": 0.0,
+                "gpu_total_vram_gb": 0.0,
+                "gpu_used_vram_gb": 0.0,
+                "gpu_free_vram_gb": 0.0,
+                "gpu_utilization_percent": 0.0,
+                "gpu_temperature_c": 0.0,
             }
 
     def get_resource_trend(self, window_minutes: int = 5) -> Dict[str, str]:
@@ -172,35 +198,111 @@ class ResourceMonitor:
         else:
             return "small"
 
-    def _get_gpu_memory(self) -> float:
-        """Get available GPU VRAM if GPU is available.
+    def _get_gpu_info(self) -> Dict[str, float]:
+        """Get detailed GPU information using pynvml or fallback methods.
 
         Returns:
-            Available GPU VRAM in GB, 0 if no GPU available
+            Dict with GPU metrics:
+            - total_vram_gb: Total VRAM capacity in GB
+            - used_vram_gb: Used VRAM in GB
+            - free_vram_gb: Available VRAM in GB
+            - utilization_percent: GPU utilization (0-100)
+            - temperature_c: GPU temperature in Celsius
         """
+        gpu_info = {
+            "total_vram_gb": 0.0,
+            "used_vram_gb": 0.0,
+            "free_vram_gb": 0.0,
+            "utilization_percent": 0.0,
+            "temperature_c": 0.0,
+        }
+
+        # Try pynvml first for NVIDIA GPUs
+        if PYNVML_AVAILABLE and pynvml is not None:
+            try:
+                # Initialize pynvml
+                pynvml.nvmlInit()
+
+                # Get number of GPUs
+                device_count = pynvml.nvmlDeviceGetCount()
+                if device_count > 0:
+                    # Use first GPU (can be extended for multi-GPU support)
+                    handle = pynvml.nvmlDeviceGetHandleByIndex(0)
+
+                    # Get memory info
+                    memory_info = pynvml.nvmlDeviceGetMemoryInfo(handle)
+                    total_bytes = memory_info.total
+                    used_bytes = memory_info.used
+                    free_bytes = memory_info.free
+
+                    # Convert to GB
+                    gpu_info["total_vram_gb"] = total_bytes / (1024**3)
+                    gpu_info["used_vram_gb"] = used_bytes / (1024**3)
+                    gpu_info["free_vram_gb"] = free_bytes / (1024**3)
+
+                    # Get utilization (GPU and memory)
+                    try:
+                        utilization = pynvml.nvmlDeviceGetUtilizationRates(handle)
+                        gpu_info["utilization_percent"] = utilization.gpu
+                    except Exception:
+                        # Some GPUs don't support utilization queries
+                        pass
+
+                    # Get temperature
+                    try:
+                        temp = pynvml.nvmlDeviceGetTemperature(
+                            handle, pynvml.NVML_TEMPERATURE_GPU
+                        )
+                        gpu_info["temperature_c"] = float(temp)
+                    except Exception:
+                        # Some GPUs don't support temperature queries
+                        pass
+
+                # Always shutdown pynvml when done
+                pynvml.nvmlShutdown()
+
+                self.logger.debug(
+                    f"GPU detected via pynvml: {gpu_info['total_vram_gb']:.1f}GB total, "
+                    f"{gpu_info['used_vram_gb']:.1f}GB used, "
+                    f"{gpu_info['utilization_percent']:.0f}% utilization, "
+                    f"{gpu_info['temperature_c']:.0f}°C"
+                )
+                return gpu_info
+
+            except Exception as e:
+                self.logger.debug(f"pynvml GPU detection failed: {e}")
+                # Fall through to gpu-tracker
+
+        # Fallback to gpu-tracker for other GPUs or when pynvml fails
         try:
-            # Try to import gpu-tracker if available
             import gpu_tracker as gt
 
-            # Get GPU information
-            gpu_info = gt.get_gpus()
+            gpu_list = gt.get_gpus()
+            if gpu_list:
+                gpu = gpu_list[0]  # Use first GPU
 
-            # Get GPU information
-            gpu_info = gt.get_gpus()
-            if gpu_info:
-                # Return available VRAM from first GPU
-                total_vram = gpu_info[0].memory_total
-                used_vram = gpu_info[0].memory_used
-                available_vram = total_vram - used_vram
-                return available_vram / 1024  # Convert MB to GB
+                # Convert MB to GB for consistency
+                total_mb = getattr(gpu, "memory_total", 0)
+                used_mb = getattr(gpu, "memory_used", 0)
+
+                gpu_info["total_vram_gb"] = total_mb / 1024.0
+                gpu_info["used_vram_gb"] = used_mb / 1024.0
+                gpu_info["free_vram_gb"] = (total_mb - used_mb) / 1024.0
+
+                self.logger.debug(
+                    f"GPU detected via gpu-tracker: {gpu_info['total_vram_gb']:.1f}GB total, "
+                    f"{gpu_info['used_vram_gb']:.1f}GB used"
+                )
+                return gpu_info
 
         except ImportError:
-            # gpu-tracker not installed, fall back to basic GPU detection
-            pass
+            self.logger.debug("gpu-tracker not available")
         except Exception as e:
-            self.logger.debug(f"GPU tracking failed: {e}")
+            self.logger.debug(f"gpu-tracker failed: {e}")
 
-        return 0.0
+        # No GPU detected - return default values
+        self.logger.debug("No GPU detected")
+        return gpu_info
 
     def _calculate_trend(self, values: List[float]) -> str:
         """Calculate trend direction from a list of values.
