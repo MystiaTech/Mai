@@ -5,3 +5,4 @@ pyyaml>=6.0
 gpu-tracker>=5.0.1
 bandit>=1.7.7
 semgrep>=1.99
+docker>=7.0.0
