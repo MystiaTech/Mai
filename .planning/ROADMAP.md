@@ -38,6 +38,12 @@ Mai's development is organized into three major milestones, each delivering dist
 - Request more resources when bottlenecks detected
 - Graceful scaling from low-end hardware to high-end systems
 
+**Plans:** 4 plans in 2 waves
+- [ ] 03-01-PLAN.md — Enhanced GPU detection with pynvml support
+- [ ] 03-02-PLAN.md — Hardware tier detection and management system
+- [ ] 03-03-PLAN.md — Proactive scaling with hybrid monitoring
+- [ ] 03-04-PLAN.md — Personality-driven resource communication
+
 ### Phase 4: Memory & Context Management
 - Store conversation history locally (file-based or lightweight DB)
 - Recall past conversations and learn from them
