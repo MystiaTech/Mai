@@ -6,8 +6,8 @@ from typing import Dict, Any, Optional
 import signal
 import sys
 
-from .models.model_manager import ModelManager
-from .models.context_manager import ContextManager
+from models.model_manager import ModelManager
+from models.context_manager import ContextManager
 
 
 class Mai:
@@ -96,7 +96,7 @@ class Mai:
             List of conversation messages
         """
         try:
-            return self.context_manager.get_conversation(conversation_id)
+            return self.context_manager.get_context_for_model(conversation_id)
         except Exception as e:
             self.logger.error(f"Error retrieving conversation history: {e}")
             return []

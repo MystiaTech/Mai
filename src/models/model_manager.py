@@ -359,7 +359,7 @@ class ModelManager:
                     raise ValueError("Model returned empty or inadequate response")
 
                 # Add messages to context
-                from .conversation import MessageRole
+                from models.conversation import MessageRole
 
                 self.context_manager.add_message(
                     conversation_id, MessageRole.USER, message
