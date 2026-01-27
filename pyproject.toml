@@ -29,6 +29,7 @@ dependencies = [
     "psutil>=6.1.0", 
     "pydantic>=2.10",
     "pyyaml>=6.0",
+    "pynvml>=11.0.0",
 ]
 
 [project.optional-dependencies]
