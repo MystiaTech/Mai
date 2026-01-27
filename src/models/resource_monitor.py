@@ -33,6 +33,14 @@ class ResourceMonitor:
         self.resource_history: List[Dict[str, float]] = []
         self.max_history_size = 100  # Keep last 100 samples
 
+        # Cache GPU info to avoid repeated initialization overhead
+        self._gpu_cache: Optional[Dict[str, float]] = None
+        self._gpu_cache_time: float = 0
+        self._gpu_cache_duration: float = 1.0  # Cache for 1 second
+
+        # Track if we've already tried pynvml and failed
+        self._pynvml_failed: bool = False
+
     def get_current_resources(self) -> Dict[str, float]:
         """Get current system resource usage.
 
@@ -54,11 +62,11 @@ class ResourceMonitor:
             memory_percent = memory.percent
             available_memory_gb = memory.available / (1024**3)
 
-            # CPU information
-            cpu_percent = psutil.cpu_percent(interval=1)
+            # CPU information (use very short interval for performance)
+            cpu_percent = psutil.cpu_percent(interval=0.05)
 
-            # GPU information (if available)
-            gpu_info = self._get_gpu_info()
+            # GPU information (if available) - with caching for performance
+            gpu_info = self._get_cached_gpu_info()
 
             return {
                 "memory_percent": memory_percent,
@@ -198,6 +206,27 @@ class ResourceMonitor:
         else:
             return "small"
 
+    def _get_cached_gpu_info(self) -> Dict[str, float]:
+        """Get GPU info with caching to avoid repeated initialization overhead.
+
+        Returns:
+            GPU info dict (cached or fresh)
+        """
+        current_time = time.time()
+
+        # Return cached info if still valid
+        if (
+            self._gpu_cache is not None
+            and current_time - self._gpu_cache_time < self._gpu_cache_duration
+        ):
+            return self._gpu_cache
+
+        # Get fresh GPU info and cache it
+        self._gpu_cache = self._get_gpu_info()
+        self._gpu_cache_time = current_time
+
+        return self._gpu_cache
+
     def _get_gpu_info(self) -> Dict[str, float]:
         """Get detailed GPU information using pynvml or fallback methods.
 
@@ -217,8 +246,8 @@ class ResourceMonitor:
             "temperature_c": 0.0,
         }
 
-        # Try pynvml first for NVIDIA GPUs
-        if PYNVML_AVAILABLE and pynvml is not None:
+        # Try pynvml first for NVIDIA GPUs (but not if we already know it failed)
+        if PYNVML_AVAILABLE and pynvml is not None and not self._pynvml_failed:
             try:
                 # Initialize pynvml
                 pynvml.nvmlInit()
@@ -271,6 +300,8 @@ class ResourceMonitor:
 
             except Exception as e:
                 self.logger.debug(f"pynvml GPU detection failed: {e}")
+                # Mark pynvml as failed to avoid repeated attempts
+                self._pynvml_failed = True
                 # Fall through to gpu-tracker
 
         # Fallback to gpu-tracker for other GPUs or when pynvml fails
