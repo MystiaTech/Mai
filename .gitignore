@@ -1,0 +1,18 @@
+# Python
+__pycache__/
+*.py[cod]
+
+# venv
+.venv/
+venv/
+
+# tooling
+.pytest_cache/
+.ruff_cache/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# generated
+.planning/CONTEXTPACK.md

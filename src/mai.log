@@ -1,0 +1,2 @@
+19:49:18 - mai.model.ollama_client - [97mINFO[0m - Ollama client initialized for http://localhost:11434
+19:49:18 - git.util - DEBUG - sys.platform='linux', git_executable='git'

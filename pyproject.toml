@@ -1,0 +1,35 @@
+[project]
+name = "Mai"
+version = "0.1.0"
+description = "GSD-native Python template"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "ollama>=0.6.1",
+    "psutil>=6.0.0",
+    "GitPython>=3.1.46",
+    "tiktoken>=0.8.0",
+    "docker>=6.0.0",
+    "sqlite-vec>=0.1.6",
+    "sentence-transformers>=3.0.0",
+    "blessed>=1.27.0",
+    "rich>=13.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.0",
+  "ruff>=0.6",
+  "pre-commit>=3.0",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+ignore = []
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

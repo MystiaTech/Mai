@@ -1,0 +1,74 @@
+# Mai Sandbox Configuration
+# 
+# This file contains all sandbox-related settings for safe code execution
+
+# Resource Limits
+resource_limits:
+  cpu_percent: 70          # Maximum CPU usage percentage
+  memory_percent: 70       # Maximum memory usage percentage  
+  timeout_seconds: 30      # Maximum execution time in seconds
+  bandwidth_mbps: 50       # Maximum network bandwidth in MB/s
+  max_processes: 10        # Maximum number of processes
+
+# Approval Settings
+approval:
+  auto_approve_low_risk: true      # Automatically approve low-risk operations
+  require_approval_high_risk: true  # Always require approval for high-risk operations
+  remember_preferences: true        # Remember user preferences for similar operations
+  batch_approval: true             # Allow batch approval for similar operations
+  session_timeout: 3600           # Session timeout in seconds (1 hour)
+
+# Risk Thresholds
+risk_thresholds:
+  low_threshold: 0.3       # Below this is low risk
+  medium_threshold: 0.6    # Below this is medium risk  
+  high_threshold: 0.8      # Below this is high risk, above is critical
+
+# Docker Settings
+docker:
+  image_name: "python:3.11-slim"      # Docker image for code execution
+  network_access: false               # Allow network access in sandbox
+  mount_points: []                    # Additional mount points (empty = no mounts)
+  volume_size: "1G"                   # Maximum volume size
+  temp_dir: "/tmp/mai_sandbox"       # Temporary directory inside container
+  user: "nobody"                      # User to run as inside container
+  
+# Audit Logging
+audit:
+  log_level: "INFO"                   # Log level (DEBUG, INFO, WARNING, ERROR)
+  retention_days: 30                  # How many days to keep logs
+  mask_sensitive_data: true           # Mask potentially sensitive data in logs
+  log_file_path: ".mai/logs/audit.log" # Path to audit log file
+  max_log_size_mb: 100               # Maximum log file size before rotation
+  enable_tamper_detection: true     # Enable log tamper detection
+
+# Security Settings
+security:
+  blocked_patterns:                  # Regex patterns for blocked operations
+    - "rm\\s+-rf\\s+/"              # Dangerous delete commands
+    - "dd\\s+if="                    # Disk imaging commands  
+    - "format\\s+"                   # Disk formatting
+    - "fdisk"                        # Disk partitioning
+    - "mkfs"                         # Filesystem creation
+    - "chmod\\s+777"                 # Dangerous permission changes
+  
+  quarantine_unknown: true           # Quarantine unknown file types
+  scan_for_malware: false           # Scan for malware (requires external tools)
+  enforce_path_restrictions: true    # Restrict file system access
+
+# Performance Settings
+performance:
+  enable_caching: true               # Enable execution result caching
+  cache_size_mb: 100                 # Maximum cache size
+  enable_parallel: false             # Enable parallel execution (not recommended)
+  max_concurrent: 1                  # Maximum concurrent executions
+
+# User Preferences (auto-populated)
+user_preferences:
+  # Automatically populated based on user choices
+  # Format: operation_type: preference
+  
+# Trust Patterns (learned)
+trust_patterns:
+  # Automatically populated based on approval history
+  # Format: operation_type: approval_count
