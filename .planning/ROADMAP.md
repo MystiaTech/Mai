@@ -15,6 +15,11 @@ Mai's development is organized into three major milestones, each delivering dist
 - Intelligently switch between models based on task and availability
 - Manage model context efficiently (conversation history, system prompt, token budget)
 
+**Plans:** 3 plans in 2 waves
+- [ ] 01-01-PLAN.md — LM Studio connectivity and resource monitoring foundation
+- [ ] 01-02-PLAN.md — Conversation context management and memory system  
+- [ ] 01-03-PLAN.md — Intelligent model switching integration
+
 ### Phase 2: Safety & Sandboxing
 - Implement sandbox execution environment for generated code
 - Multi-level security assessment (LOW/MEDIUM/HIGH/BLOCKED)
