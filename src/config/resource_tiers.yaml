@@ -1,0 +1,120 @@
+# Hardware Tier Definitions for Mai
+# Configurable thresholds for classifying system capabilities
+# Edit these values to adjust tier boundaries without code changes
+
+tiers:
+  # Low-end systems: Basic hardware, small models only
+  low_end:
+    ram_gb: 
+      min: 2
+      max: 4
+      description: "Minimal RAM for basic operations"
+    cpu_cores:
+      min: 2
+      max: 4
+      description: "Basic processing capability"
+    gpu_required: false
+    gpu_vram_gb: 
+      min: 0
+      description: "GPU not required for this tier"
+    preferred_models: ["small"]
+    model_size_range:
+      min: "1B"
+      max: "3B"
+      description: "Small language models only"
+    scaling_thresholds:
+      memory_percent: 75
+      cpu_percent: 80
+      description: "Conservative thresholds for stability on limited hardware"
+    performance_characteristics:
+      max_conversation_length: "short"
+      context_compression: "aggressive"
+      response_time: "slow"
+      parallel_processing: false
+    description: "Entry-level systems requiring conservative resource usage"
+
+  # Mid-range systems: Moderate hardware, small to medium models
+  mid_range:
+    ram_gb: 
+      min: 4
+      max: 8
+      description: "Sufficient RAM for medium-sized models"
+    cpu_cores:
+      min: 4
+      max: 8
+      description: "Good multi-core performance"
+    gpu_required: false
+    gpu_vram_gb: 
+      min: 0
+      max: 4
+      description: "Integrated or entry-level GPU acceptable"
+    preferred_models: ["small", "medium"]
+    model_size_range:
+      min: "3B"
+      max: "7B"
+      description: "Small to medium language models"
+    scaling_thresholds:
+      memory_percent: 80
+      cpu_percent: 85
+      description: "Moderate thresholds for balanced performance"
+    performance_characteristics:
+      max_conversation_length: "medium"
+      context_compression: "moderate"
+      response_time: "moderate"
+      parallel_processing: false
+    description: "Consumer-grade systems with balanced capabilities"
+
+  # High-end systems: Powerful hardware, medium to large models
+  high_end:
+    ram_gb: 
+      min: 8
+      max: null
+      description: "Substantial RAM for large models and contexts"
+    cpu_cores:
+      min: 6
+      max: null
+      description: "High-performance multi-core processing"
+    gpu_required: true
+    gpu_vram_gb: 
+      min: 6
+      max: null
+      description: "Dedicated GPU with substantial VRAM"
+    preferred_models: ["medium", "large"]
+    model_size_range:
+      min: "7B"
+      max: "70B"
+      description: "Medium to large language models"
+    scaling_thresholds:
+      memory_percent: 85
+      cpu_percent: 90
+      description: "Higher thresholds for maximum utilization"
+    performance_characteristics:
+      max_conversation_length: "long"
+      context_compression: "minimal"
+      response_time: "fast"
+      parallel_processing: true
+    description: "High-performance systems for demanding workloads"
+
+# Global settings
+global:
+  # Model selection preferences
+  model_selection:
+    prefer_gpu: true
+    fallback_to_cpu: true
+    safety_margin_gb: 1.0
+    description: "Keep 1GB RAM free for system stability"
+  
+  # Scaling behavior
+  scaling:
+    check_interval_seconds: 30
+    sustained_threshold_minutes: 5
+    auto_downgrade: true
+    auto_upgrade: false
+    description: "Downgrade automatically but require user approval for upgrades"
+  
+  # Performance tuning
+  performance:
+    cache_size_mb: 512
+    batch_processing: true
+    async_operations: true
+    description: "Performance optimizations for capable systems"
