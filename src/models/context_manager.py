@@ -18,6 +18,7 @@ from .conversation import (
     MessageRole,
     MessageType,
     MessageMetadata,
+    ConversationMetadata,
     calculate_importance_score,
     estimate_token_count,
 )
@@ -157,9 +158,12 @@ class ContextManager:
         """
         context_size = model_context_size or self.default_context_size
 
-        metadata = {"session_id": conversation_id, "context_window_size": context_size}
-
-        conversation = Conversation(id=conversation_id, metadata=metadata)
+        conversation = Conversation(
+            id=conversation_id,
+            metadata=ConversationMetadata(
+                session_id=conversation_id, context_window_size=context_size
+            ),
+        )
 
         self.conversations[conversation_id] = conversation
         self.context_windows[conversation_id] = ContextWindow(
