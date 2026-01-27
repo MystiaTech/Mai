@@ -1,0 +1,181 @@
+# Audit Logging Configuration
+# Defines policies for tamper-proof audit logging and retention
+
+# Core audit logging policies
+audit:
+  # Log retention settings
+  retention:
+    period_days: 30                # Default retention period
+    compression: true             # Compress old logs to save space
+    backup_retention_days: 90     # Keep compressed backups longer
+    
+  # Logging level and detail
+  log_level: comprehensive       # comprehensive, basic, minimal
+  include_full_code: true        # Include complete code in logs
+  include_full_results: false    # Truncate long execution results
+  max_result_length: 500         # Max characters for result strings
+  
+  # Hash chain and integrity settings
+  hash_chain:
+    enabled: true                 # Enable SHA-256 hash chaining
+    signature_algorithm: "SHA-256"  # Cryptographic signature method
+    integrity_check_interval: 3600  # Verify integrity every hour (seconds)
+    
+  # Storage configuration
+  storage:
+    base_directory: "logs/audit"  # Base directory for audit logs
+    file_rotation: true           # Rotate log files when they reach size limit
+    max_file_size_mb: 100         # Max size per log file before rotation
+    max_files_per_type: 10        # Keep at most N rotated files
+    
+  # Alerting thresholds
+  alerts:
+    enabled: true
+    critical_events_per_hour: 10  # Alert if more than this
+    resource_violations_per_hour: 5
+    failed_integrity_checks: 1     # Any integrity check failure triggers alert
+    
+    # Alert channels (future implementation)
+    channels:
+      log_file: true
+      console: true
+      webhook: false              # Future: external alerting
+      email: false                # Future: email notifications
+
+# Event-specific logging policies
+event_types:
+  code_execution:
+    enabled: true
+    include_code_diff: true
+    include_execution_time: true
+    include_resource_usage: true
+    include_security_level: true
+    
+  security_assessment:
+    enabled: true
+    include_full_findings: true
+    include_recommendations: true
+    include_code_snippet: true
+    
+  container_creation:
+    enabled: true
+    include_security_config: true
+    include_hardening_details: true
+    
+  resource_violation:
+    enabled: true
+    include_threshold_details: true
+    include_action_taken: true
+    severity_levels: ["CRITICAL", "HIGH", "MEDIUM", "LOW"]
+    
+  security_event:
+    enabled: true
+    include_full_context: true
+    require_severity: true
+    
+  system_event:
+    enabled: true
+    include_configuration_changes: true
+
+# Performance optimization settings
+performance:
+  # Batch writing to reduce I/O overhead
+  batch_writes:
+    enabled: true
+    batch_size: 10                # Number of entries per batch
+    flush_interval_seconds: 5     # Max time before flushing
+    
+  # Memory management
+  memory:
+    max_entries_in_memory: 1000    # Keep recent entries in memory
+    cleanup_interval_minutes: 15  # Clean up old entries
+    
+  # Async logging (future implementation)
+  async_logging:
+    enabled: false                # Future: async log writing
+    queue_size: 1000
+    worker_threads: 2
+
+# Privacy and security settings
+privacy:
+  # Data sanitization
+  sanitize_secrets: true         # Remove potential secrets from logs
+  sanitize_patterns:
+    - "password"
+    - "token"
+    - "key"
+    - "secret"
+    - "credential"
+    
+  # User privacy
+  anonymize_user_data: false     # Future: option to anonymize user info
+  retain_user_sessions: true     # Keep user session information
+  
+  # Encryption (future implementation)
+  encryption:
+    enabled: false               # Future: encrypt log files at rest
+    algorithm: "AES-256-GCM"
+    key_rotation_days: 90
+
+# Compliance settings
+compliance:
+  # Regulatory requirements (future implementation)
+  standards:
+    gdpr: false                  # Future: GDPR compliance features
+    hipaa: false                 # Future: HIPAA compliance features
+    sox: false                   # Future: SOX compliance features
+    
+  # Audit trail requirements
+  immutable_logs: true          # Logs cannot be modified after writing
+  require_signatures: true       # All entries must be signed
+  chain_of_custody: true        # Maintain clear chain of custody
+
+# Integration settings
+integrations:
+  # Security system integration
+  security_assessor:
+    auto_log_assessments: true
+    include_findings: true
+    correlation_id: true         # Link executions to assessments
+    
+  # Sandbox integration
+  sandbox:
+    auto_log_container_events: true
+    include_resource_metrics: true
+    log_violations: true
+    
+  # Model interface integration
+  model_interface:
+    log_inference_calls: false   # Future: optional LLM call logging
+    log_conversation_summary: false  # Future: conversation logging
+
+# Monitoring and maintenance
+monitoring:
+  # Health checks
+  health_check_interval: 300     # Check audit system health every 5 minutes
+  disk_usage_threshold: 80       # Alert if disk usage > 80%
+  
+  # Maintenance tasks
+  maintenance:
+    log_rotation: true
+    cleanup_old_logs: true
+    integrity_verification: true
+    index_rebuild: false          # Future: rebuild search indexes
+    
+  # Metrics collection (future implementation)
+  metrics:
+    enabled: false
+    collection_interval: 60
+    export_format: "prometheus"
+
+# Development and debugging
+development:
+  debug_mode: false              # Enable additional debugging output
+  test_mode: false               # Use separate test logs
+  mock_signatures: false         # Use mock crypto for testing
+  
+  # Debug logging
+  debug:
+    log_crypto_operations: false
+    log_performance_metrics: false
+    verbose_error_messages: false
