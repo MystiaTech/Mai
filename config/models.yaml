@@ -1,0 +1,131 @@
+# Model configuration for Mai
+# Defines available models, resource requirements, and switching behavior
+
+models:
+  # Small models - for resource-constrained environments
+  - key: "microsoft/DialoGPT-medium"
+    display_name: "DialoGPT Medium"
+    category: "small"
+    min_memory_gb: 2
+    min_vram_gb: 1
+    context_window: 1024
+    capabilities: ["chat"]
+    fallback_for: ["large", "medium"]
+    
+  - key: "TinyLlama/TinyLlama-1.1B-Chat-v1.0"
+    display_name: "TinyLlama 1.1B Chat"
+    category: "small"
+    min_memory_gb: 2
+    min_vram_gb: 1
+    context_window: 2048
+    capabilities: ["chat"]
+    fallback_for: ["large", "medium"]
+
+  # Medium models - balance of capability and efficiency
+  - key: "qwen/qwen3-4b-2507"
+    display_name: "Qwen3 4B"
+    category: "medium"
+    min_memory_gb: 4
+    min_vram_gb: 2
+    context_window: 8192
+    capabilities: ["chat", "reasoning"]
+    fallback_for: ["large"]
+    preferred_when: "memory >= 4GB and CPU < 80%"
+    
+  - key: "microsoft/DialoGPT-large"
+    display_name: "DialoGPT Large"
+    category: "medium"
+    min_memory_gb: 6
+    min_vram_gb: 3
+    context_window: 2048
+    capabilities: ["chat"]
+    fallback_for: ["large"]
+
+  # Large models - maximum capability, require resources
+  - key: "qwen/qwen2.5-7b-instruct"
+    display_name: "Qwen2.5 7B Instruct"
+    category: "large"
+    min_memory_gb: 8
+    min_vram_gb: 4
+    context_window: 32768
+    capabilities: ["chat", "reasoning", "analysis"]
+    preferred_when: "memory >= 8GB and GPU available"
+    
+  - key: "meta-llama/Llama-2-13b-chat-hf"
+    display_name: "Llama2 13B Chat"
+    category: "large"
+    min_memory_gb: 10
+    min_vram_gb: 6
+    context_window: 4096
+    capabilities: ["chat", "reasoning", "analysis"]
+    preferred_when: "memory >= 10GB and GPU available"
+
+# Model selection rules
+selection_rules:
+  # Resource-based selection criteria
+  resource_thresholds:
+    memory_available_gb:
+      small: 2
+      medium: 4
+      large: 8
+    cpu_threshold_percent: 80
+    gpu_required_for_large: true
+    
+  # Context window requirements per task type
+  task_requirements:
+    simple_chat: 2048
+    reasoning: 8192
+    analysis: 16384
+    code_generation: 4096
+    
+  # Fallback chains when resources are constrained
+  fallback_chains:
+    large_to_medium:
+      - "qwen/qwen2.5-7b-instruct": "qwen/qwen3-4b-2507"
+      - "meta-llama/Llama-2-13b-chat-hf": "microsoft/DialoGPT-large"
+    medium_to_small:
+      - "qwen/qwen3-4b-2507": "TinyLlama/TinyLlama-1.1B-Chat-v1.0"
+      - "microsoft/DialoGPT-large": "microsoft/DialoGPT-medium"
+    large_to_small:
+      - "qwen/qwen2.5-7b-instruct": "TinyLlama/TinyLlama-1.1B-Chat-v1.0"
+      - "meta-llama/Llama-2-13b-chat-hf": "microsoft/DialoGPT-medium"
+
+# Context management settings
+context_management:
+  # When to trigger context compression (percentage of context window)
+  compression_threshold: 70
+  
+  # Minimum context to preserve
+  min_context_tokens: 512
+  
+  # Hybrid compression strategy
+  compression_strategy:
+    # Summarize messages older than this ratio
+    summarize_older_than: 0.5
+    # Keep some messages from middle intact
+    keep_middle_percentage: 0.3
+    # Always preserve most recent messages
+    keep_recent_percentage: 0.2
+    # Priority during compression
+    always_preserve: ["user_instructions", "explicit_requests"]
+
+# Performance settings
+performance:
+  # Model loading timeouts
+  load_timeout_seconds:
+    small: 30
+    medium: 60
+    large: 120
+    
+  # Resource monitoring frequency
+  monitoring_interval_seconds: 5
+  
+  # Trend analysis window
+  trend_window_minutes: 5
+  
+  # When to consider model switching
+  switching_triggers:
+    cpu_threshold: 85
+    memory_threshold: 85
+    response_time_threshold_ms: 5000
+    consecutive_failures: 3
