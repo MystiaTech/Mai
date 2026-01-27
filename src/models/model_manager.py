@@ -266,7 +266,7 @@ class ModelManager:
                 )
 
                 # Unload current model (silent - no user notification per CONTEXT.md)
-                if self.current_model_instance:
+                if self.current_model_instance and self.current_model_key:
                     try:
                         self.lm_adapter.unload_model(self.current_model_key)
                     except Exception as e:
@@ -359,8 +359,14 @@ class ModelManager:
                     raise ValueError("Model returned empty or inadequate response")
 
                 # Add messages to context
-                self.context_manager.add_message(conversation_id, "user", message)
-                self.context_manager.add_message(conversation_id, "assistant", response)
+                from .conversation import MessageRole
+
+                self.context_manager.add_message(
+                    conversation_id, MessageRole.USER, message
+                )
+                self.context_manager.add_message(
+                    conversation_id, MessageRole.ASSISTANT, response
+                )
 
                 # Check if we should consider switching (slow response or struggling)
                 if await self._should_consider_switching(response_time_ms, response):
@@ -589,7 +595,7 @@ class ModelManager:
     def shutdown(self) -> None:
         """Clean up resources and unload models."""
         try:
-            if self.current_model_instance:
+            if self.current_model_instance and self.current_model_key:
                 self.lm_adapter.unload_model(self.current_model_key)
                 self.current_model_key = None
                 self.current_model_instance = None
