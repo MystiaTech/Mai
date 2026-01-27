@@ -41,9 +41,7 @@ htmlcov/
 config.yaml
 logs/
 *.log
-models/
 cache/
-.planning/STATE.md
 .planning/PHASE-*-PLAN.md
 
 # Discord
