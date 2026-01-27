@@ -1,6 +1,6 @@
 # Mai
 
-![Mai Avatar](./mai.png)
+![Mai Avatar](./Mai.png)
 
 A genuinely intelligent, autonomous AI companion that runs locally-first, learns from you, and improves her own code. Mai has a distinct personality, long-term memory, agency, and a visual presence through a desktop avatar and voice visualization. She works on desktop and Android with full offline capability and seamless synchronization between devices.
 
