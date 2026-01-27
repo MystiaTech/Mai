@@ -27,10 +27,10 @@ Mai's development is organized into three major milestones, each delivering dist
 - Resource-limited container execution
 
 **Plans:** 4 plans in 3 waves
-- [ ] 02-01-PLAN.md — Security assessment infrastructure (Bandit + Semgrep)
-- [ ] 02-02-PLAN.md — Docker sandbox execution environment
-- [ ] 02-03-PLAN.md — Tamper-proof audit logging system
-- [ ] 02-04-PLAN.md — Safety system integration and testing
+- [x] 02-01-PLAN.md — Security assessment infrastructure (Bandit + Semgrep)
+- [x] 02-02-PLAN.md — Docker sandbox execution environment
+- [x] 02-03-PLAN.md — Tamper-proof audit logging system
+- [x] 02-04-PLAN.md — Safety system integration and testing
 
 ### Phase 3: Resource Management
 - Detect available system resources (CPU, RAM, GPU)
