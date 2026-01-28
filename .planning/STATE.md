@@ -10,7 +10,7 @@
 | Aspect | Value |
 |--------|-------|
 | **Milestone** | v1.0 Core (Phases 1-5) |
-| **Current Phase** | 03: Resource Management |
+| **Current Phase | 04: Memory & Context Management |
 | **Current Plan** | 4 of 4 in current phase |
 | **Overall Progress** | 3/15 phases complete |
 | **Progress Bar** | ███████░░░░ 30% |
