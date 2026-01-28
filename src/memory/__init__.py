@@ -13,10 +13,235 @@ from .retrieval.context_aware import ContextAwareSearch
 from .retrieval.timeline_search import TimelineSearch
 from .backup.archival import ArchivalManager
 from .backup.retention import RetentionPolicy
+from .personality.pattern_extractor import PatternExtractor
+from .personality.layer_manager import (
+    LayerManager,
+    PersonalityLayer,
+    LayerType,
+    LayerPriority,
+)
+from .personality.adaptation import PersonalityAdaptation, AdaptationConfig
 
-from typing import Optional, List, Dict, Any, Union
+from typing import Optional, List, Dict, Any, Union, Tuple
 from datetime import datetime
 import logging
+
+
+class PersonalityLearner:
+    """
+    Personality learning system that combines pattern extraction, layer management, and adaptation.
+
+    Coordinates all personality learning components to provide a unified interface
+    for learning from conversations and applying personality adaptations.
+    """
+
+    def __init__(self, memory_manager, config: Optional[Dict[str, Any]] = None):
+        """
+        Initialize personality learner.
+
+        Args:
+            memory_manager: MemoryManager instance for data access
+            config: Optional configuration dictionary
+        """
+        self.memory_manager = memory_manager
+        self.logger = logging.getLogger(__name__)
+
+        # Initialize components
+        self.pattern_extractor = PatternExtractor()
+        self.layer_manager = LayerManager()
+
+        # Configure adaptation
+        adaptation_config = AdaptationConfig()
+        if config:
+            adaptation_config.learning_rate = AdaptationRate(
+                config.get("learning_rate", "medium")
+            )
+            adaptation_config.max_weight_change = config.get("max_weight_change", 0.1)
+            adaptation_config.enable_auto_adaptation = config.get(
+                "enable_auto_adaptation", True
+            )
+
+        self.adaptation = PersonalityAdaptation(adaptation_config)
+
+        self.logger.info("PersonalityLearner initialized")
+
+    def learn_from_conversations(
+        self, conversation_range: Tuple[datetime, datetime]
+    ) -> Dict[str, Any]:
+        """
+        Learn personality patterns from conversation range.
+
+        Args:
+            conversation_range: Tuple of (start_date, end_date)
+
+        Returns:
+            Learning results with patterns extracted and adaptations made
+        """
+        try:
+            self.logger.info("Starting personality learning from conversations")
+
+            # Get conversations from memory
+            conversations = (
+                self.memory_manager.sqlite_manager.get_conversations_by_date_range(
+                    conversation_range[0], conversation_range[1]
+                )
+            )
+
+            if not conversations:
+                return {
+                    "status": "no_conversations",
+                    "message": "No conversations found in range",
+                }
+
+            # Extract patterns from conversations
+            all_patterns = []
+            for conv in conversations:
+                messages = self.memory_manager.sqlite_manager.get_conversation_messages(
+                    conv["id"]
+                )
+                if messages:
+                    patterns = self.pattern_extractor.extract_conversation_patterns(
+                        messages
+                    )
+                    all_patterns.append(patterns)
+
+            if not all_patterns:
+                return {"status": "no_patterns", "message": "No patterns extracted"}
+
+            # Aggregate patterns
+            aggregated_patterns = self._aggregate_patterns(all_patterns)
+
+            # Create/update personality layers
+            created_layers = []
+            for pattern_name, pattern_data in aggregated_patterns.items():
+                layer_id = f"learned_{pattern_name}_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}"
+
+                try:
+                    layer = self.layer_manager.create_layer_from_patterns(
+                        layer_id, f"Learned {pattern_name}", pattern_data
+                    )
+                    created_layers.append(layer.id)
+
+                    # Apply adaptation
+                    adaptation_result = self.adaptation.update_personality_layer(
+                        pattern_data, layer.id
+                    )
+
+                except Exception as e:
+                    self.logger.error(f"Failed to create layer for {pattern_name}: {e}")
+
+            return {
+                "status": "success",
+                "conversations_processed": len(conversations),
+                "patterns_found": list(aggregated_patterns.keys()),
+                "layers_created": created_layers,
+                "learning_timestamp": datetime.utcnow().isoformat(),
+            }
+
+        except Exception as e:
+            self.logger.error(f"Personality learning failed: {e}")
+            return {"status": "error", "error": str(e)}
+
+    def apply_learning(self, context: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Apply learned personality to current context.
+
+        Args:
+            context: Current conversation context
+
+        Returns:
+            Applied personality adjustments
+        """
+        try:
+            # Get active layers for context
+            active_layers = self.layer_manager.get_active_layers(context)
+
+            if not active_layers:
+                return {"status": "no_active_layers", "adjustments": {}}
+
+            # Apply layers to get personality modifications
+            # This would integrate with main personality system
+            base_prompt = "You are Mai, a helpful AI assistant."
+            modified_prompt, behavior_adjustments = self.layer_manager.apply_layers(
+                base_prompt, context
+            )
+
+            return {
+                "status": "applied",
+                "active_layers": [layer.id for layer in active_layers],
+                "modified_prompt": modified_prompt,
+                "behavior_adjustments": behavior_adjustments,
+                "layer_count": len(active_layers),
+            }
+
+        except Exception as e:
+            self.logger.error(f"Failed to apply personality learning: {e}")
+            return {"status": "error", "error": str(e)}
+
+    def get_current_personality(self) -> Dict[str, Any]:
+        """
+        Get current personality state including all layers.
+
+        Returns:
+            Current personality configuration
+        """
+        try:
+            all_layers = self.layer_manager.list_layers()
+            adaptation_history = self.adaptation.get_adaptation_history(limit=20)
+
+            return {
+                "total_layers": len(all_layers),
+                "active_layers": len(
+                    [l for l in all_layers if l.get("application_count", 0) > 0]
+                ),
+                "layer_types": list(set(l["type"] for l in all_layers)),
+                "recent_adaptations": len(adaptation_history),
+                "adaptation_enabled": self.adaptation.config.enable_auto_adaptation,
+                "learning_rate": self.adaptation.config.learning_rate.value,
+                "layers": all_layers,
+                "adaptation_history": adaptation_history,
+            }
+
+        except Exception as e:
+            self.logger.error(f"Failed to get current personality: {e}")
+            return {"status": "error", "error": str(e)}
+
+    def update_feedback(self, layer_id: str, feedback: Dict[str, Any]) -> bool:
+        """
+        Update layer with user feedback.
+
+        Args:
+            layer_id: Layer identifier
+            feedback: Feedback data
+
+        Returns:
+            True if update successful
+        """
+        return self.layer_manager.update_layer_feedback(layer_id, feedback)
+
+    def _aggregate_patterns(self, all_patterns: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Aggregate patterns from multiple conversations."""
+        aggregated = {}
+
+        for patterns in all_patterns:
+            for pattern_type, pattern_data in patterns.items():
+                if pattern_type not in aggregated:
+                    aggregated[pattern_type] = pattern_data
+                else:
+                    # Merge pattern data (simplified)
+                    if hasattr(pattern_data, "confidence_score"):
+                        existing_conf = getattr(
+                            aggregated[pattern_type], "confidence_score", 0.5
+                        )
+                        new_conf = pattern_data.confidence_score
+                        # Average the confidences
+                        setattr(
+                            aggregated[pattern_type],
+                            "confidence_score",
+                            (existing_conf + new_conf) / 2,
+                        )
+
+        return aggregated
 
 
 class MemoryManager:
@@ -43,6 +268,7 @@ class MemoryManager:
         self._compression_engine: Optional[CompressionEngine] = None
         self._archival_manager: Optional[ArchivalManager] = None
         self._retention_policy: Optional[RetentionPolicy] = None
+        self._personality_learner: Optional[PersonalityLearner] = None
         self.logger = logging.getLogger(__name__)
 
     def initialize(self) -> None:
@@ -68,8 +294,11 @@ class MemoryManager:
             )
             self._retention_policy = RetentionPolicy(self._sqlite_manager)
 
+            # Initialize personality learner
+            self._personality_learner = PersonalityLearner(self)
+
             self.logger.info(
-                f"Enhanced memory manager initialized with archival: {self.db_path}"
+                f"Enhanced memory manager initialized with archival and personality: {self.db_path}"
             )
         except Exception as e:
             self.logger.error(f"Failed to initialize enhanced memory manager: {e}")
@@ -146,6 +375,15 @@ class MemoryManager:
                 "Memory manager not initialized. Call initialize() first."
             )
         return self._retention_policy
+
+    @property
+    def personality_learner(self) -> PersonalityLearner:
+        """Get personality learner instance."""
+        if self._personality_learner is None:
+            raise RuntimeError(
+                "Memory manager not initialized. Call initialize() first."
+            )
+        return self._personality_learner
 
     # Archival methods
     def compress_conversation(self, conversation_id: str) -> Optional[Dict[str, Any]]:
@@ -627,4 +865,12 @@ __all__ = [
     "TimelineSearch",
     "ArchivalManager",
     "RetentionPolicy",
+    "PatternExtractor",
+    "LayerManager",
+    "PersonalityLayer",
+    "LayerType",
+    "LayerPriority",
+    "PersonalityAdaptation",
+    "AdaptationConfig",
+    "PersonalityLearner",
 ]
