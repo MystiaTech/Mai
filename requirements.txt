@@ -6,3 +6,6 @@ gpu-tracker>=5.0.1
 bandit>=1.7.7
 semgrep>=1.99
 docker>=7.0.0
+sqlite-vec>=0.1.0
+numpy>=1.24.0
+sentence-transformers>=2.2.2
