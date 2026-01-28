@@ -710,6 +710,9 @@ class VectorStore:
 
         try:
             # Search message metadata table content
+            base_params = [keywords[0].lower()] + params[
+                :-1
+            ]  # Exclude limit from base params
             cursor = conn.execute(
                 f"""
                 SELECT DISTINCT
@@ -724,7 +727,7 @@ class VectorStore:
                 ORDER BY relevance DESC
                 LIMIT ?
             """,
-                [keywords[0].lower()] + params,
+                base_params + [params[-1]],  # Add limit back
             )
 
             for row in cursor:
@@ -734,8 +737,8 @@ class VectorStore:
                         "conversation_id": row["conversation_id"],
                         "content": row["content"],
                         "timestamp": row["timestamp"],
-                        "relevance": float(row.get("relevance", 0.5)),
-                        "score": float(row.get("relevance", 0.5)),  # For compatibility
+                        "relevance": float(row["relevance"]),
+                        "score": float(row["relevance"]),  # For compatibility
                     }
                 )
 
