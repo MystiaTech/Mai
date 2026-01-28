@@ -7,9 +7,12 @@ messages, and associated vector embeddings for semantic search capabilities.
 
 from .storage.sqlite_manager import SQLiteManager
 from .storage.vector_store import VectorStore
+from .storage.compression import CompressionEngine
 from .retrieval.semantic_search import SemanticSearch
 from .retrieval.context_aware import ContextAwareSearch
 from .retrieval.timeline_search import TimelineSearch
+from .backup.archival import ArchivalManager
+from .backup.retention import RetentionPolicy
 
 from typing import Optional, List, Dict, Any, Union
 from datetime import datetime
@@ -37,6 +40,9 @@ class MemoryManager:
         self._semantic_search: Optional[SemanticSearch] = None
         self._context_aware_search: Optional[ContextAwareSearch] = None
         self._timeline_search: Optional[TimelineSearch] = None
+        self._compression_engine: Optional[CompressionEngine] = None
+        self._archival_manager: Optional[ArchivalManager] = None
+        self._retention_policy: Optional[RetentionPolicy] = None
         self.logger = logging.getLogger(__name__)
 
     def initialize(self) -> None:
@@ -55,8 +61,15 @@ class MemoryManager:
             self._context_aware_search = ContextAwareSearch(self._sqlite_manager)
             self._timeline_search = TimelineSearch(self._sqlite_manager)
 
+            # Initialize archival components
+            self._compression_engine = CompressionEngine()
+            self._archival_manager = ArchivalManager(
+                compression_engine=self._compression_engine
+            )
+            self._retention_policy = RetentionPolicy(self._sqlite_manager)
+
             self.logger.info(
-                f"Enhanced memory manager initialized with database: {self.db_path}"
+                f"Enhanced memory manager initialized with archival: {self.db_path}"
             )
         except Exception as e:
             self.logger.error(f"Failed to initialize enhanced memory manager: {e}")
@@ -106,6 +119,289 @@ class MemoryManager:
                 "Memory manager not initialized. Call initialize() first."
             )
         return self._timeline_search
+
+    @property
+    def compression_engine(self) -> CompressionEngine:
+        """Get compression engine instance."""
+        if self._compression_engine is None:
+            raise RuntimeError(
+                "Memory manager not initialized. Call initialize() first."
+            )
+        return self._compression_engine
+
+    @property
+    def archival_manager(self) -> ArchivalManager:
+        """Get archival manager instance."""
+        if self._archival_manager is None:
+            raise RuntimeError(
+                "Memory manager not initialized. Call initialize() first."
+            )
+        return self._archival_manager
+
+    @property
+    def retention_policy(self) -> RetentionPolicy:
+        """Get retention policy instance."""
+        if self._retention_policy is None:
+            raise RuntimeError(
+                "Memory manager not initialized. Call initialize() first."
+            )
+        return self._retention_policy
+
+    # Archival methods
+    def compress_conversation(self, conversation_id: str) -> Optional[Dict[str, Any]]:
+        """
+        Compress a conversation based on its age.
+
+        Args:
+            conversation_id: ID of conversation to compress
+
+        Returns:
+            Compressed conversation data or None if not found
+        """
+        if not self._is_initialized():
+            raise RuntimeError("Memory manager not initialized")
+
+        try:
+            conversation = self._sqlite_manager.get_conversation(
+                conversation_id, include_messages=True
+            )
+            if not conversation:
+                self.logger.error(
+                    f"Conversation {conversation_id} not found for compression"
+                )
+                return None
+
+            compressed = self._compression_engine.compress_by_age(conversation)
+            return {
+                "original_conversation": conversation,
+                "compressed_conversation": compressed,
+                "compression_applied": True,
+            }
+
+        except Exception as e:
+            self.logger.error(f"Failed to compress conversation {conversation_id}: {e}")
+            return None
+
+    def archive_conversation(self, conversation_id: str) -> Optional[str]:
+        """
+        Archive a conversation to JSON file.
+
+        Args:
+            conversation_id: ID of conversation to archive
+
+        Returns:
+            Path to archived file or None if failed
+        """
+        if not self._is_initialized():
+            raise RuntimeError("Memory manager not initialized")
+
+        try:
+            conversation = self._sqlite_manager.get_conversation(
+                conversation_id, include_messages=True
+            )
+            if not conversation:
+                self.logger.error(
+                    f"Conversation {conversation_id} not found for archival"
+                )
+                return None
+
+            compressed = self._compression_engine.compress_by_age(conversation)
+            archive_path = self._archival_manager.archive_conversation(
+                conversation, compressed
+            )
+            return archive_path
+
+        except Exception as e:
+            self.logger.error(f"Failed to archive conversation {conversation_id}: {e}")
+            return None
+
+    def get_retention_recommendations(self, limit: int = 100) -> List[Dict[str, Any]]:
+        """
+        Get retention recommendations for recent conversations.
+
+        Args:
+            limit: Number of conversations to analyze
+
+        Returns:
+            List of retention recommendations
+        """
+        if not self._is_initialized():
+            raise RuntimeError("Memory manager not initialized")
+
+        try:
+            recent_conversations = self._sqlite_manager.get_recent_conversations(
+                limit=limit
+            )
+
+            full_conversations = []
+            for conv_data in recent_conversations:
+                full_conv = self._sqlite_manager.get_conversation(
+                    conv_data["id"], include_messages=True
+                )
+                if full_conv:
+                    full_conversations.append(full_conv)
+
+            return self._retention_policy.get_retention_recommendations(
+                full_conversations
+            )
+
+        except Exception as e:
+            self.logger.error(f"Failed to get retention recommendations: {e}")
+            return []
+
+    def trigger_automatic_compression(self, days_threshold: int = 30) -> Dict[str, Any]:
+        """
+        Automatically compress conversations older than threshold.
+
+        Args:
+            days_threshold: Age in days to trigger compression
+
+        Returns:
+            Dictionary with compression results
+        """
+        if not self._is_initialized():
+            raise RuntimeError("Memory manager not initialized")
+
+        try:
+            recent_conversations = self._sqlite_manager.get_recent_conversations(
+                limit=1000
+            )
+
+            compressed_count = 0
+            archived_count = 0
+            total_space_saved = 0
+            errors = []
+
+            from datetime import datetime, timedelta
+
+            for conv_data in recent_conversations:
+                try:
+                    # Check conversation age
+                    created_at = conv_data.get("created_at")
+                    if created_at:
+                        conv_date = datetime.fromisoformat(created_at)
+                        age_days = (datetime.now() - conv_date).days
+
+                        if age_days >= days_threshold:
+                            # Get full conversation data
+                            full_conv = self._sqlite_manager.get_conversation(
+                                conv_data["id"], include_messages=True
+                            )
+                            if full_conv:
+                                # Check retention policy
+                                importance_score = (
+                                    self._retention_policy.calculate_importance_score(
+                                        full_conv
+                                    )
+                                )
+                                should_compress, level = (
+                                    self._retention_policy.should_retain_compressed(
+                                        full_conv, importance_score
+                                    )
+                                )
+
+                                if should_compress:
+                                    compressed = (
+                                        self._compression_engine.compress_by_age(
+                                            full_conv
+                                        )
+                                    )
+
+                                    # Calculate space saved
+                                    original_size = len(str(full_conv))
+                                    compressed_size = len(str(compressed))
+                                    space_saved = original_size - compressed_size
+                                    total_space_saved += space_saved
+
+                                    # Archive the compressed version
+                                    archive_path = (
+                                        self._archival_manager.archive_conversation(
+                                            full_conv, compressed
+                                        )
+                                    )
+                                    if archive_path:
+                                        archived_count += 1
+                                        compressed_count += 1
+                                    else:
+                                        errors.append(
+                                            f"Failed to archive conversation {conv_data['id']}"
+                                        )
+                                else:
+                                    self.logger.debug(
+                                        f"Conversation {conv_data['id']} marked to retain full"
+                                    )
+
+                except Exception as e:
+                    errors.append(
+                        f"Error processing {conv_data.get('id', 'unknown')}: {e}"
+                    )
+                    continue
+
+            return {
+                "total_processed": len(recent_conversations),
+                "compressed_count": compressed_count,
+                "archived_count": archived_count,
+                "total_space_saved_bytes": total_space_saved,
+                "total_space_saved_mb": round(total_space_saved / (1024 * 1024), 2),
+                "errors": errors,
+                "threshold_days": days_threshold,
+            }
+
+        except Exception as e:
+            self.logger.error(f"Failed automatic compression: {e}")
+            return {"error": str(e), "compressed_count": 0, "archived_count": 0}
+
+    def get_archival_stats(self) -> Dict[str, Any]:
+        """
+        Get archival statistics.
+
+        Returns:
+            Dictionary with archival statistics
+        """
+        if not self._is_initialized():
+            raise RuntimeError("Memory manager not initialized")
+
+        try:
+            archive_stats = self._archival_manager.get_archive_stats()
+            retention_stats = self._retention_policy.get_retention_stats()
+            db_stats = self._sqlite_manager.get_database_stats()
+
+            return {
+                "archive": archive_stats,
+                "retention": retention_stats,
+                "database": db_stats,
+                "compression_ratio": self._calculate_overall_compression_ratio(),
+            }
+
+        except Exception as e:
+            self.logger.error(f"Failed to get archival stats: {e}")
+            return {}
+
+    def _calculate_overall_compression_ratio(self) -> float:
+        """Calculate overall compression ratio across all data."""
+        try:
+            archive_stats = self._archival_manager.get_archive_stats()
+
+            if not archive_stats or "total_archive_size_bytes" not in archive_stats:
+                return 0.0
+
+            db_stats = self._sqlite_manager.get_database_stats()
+            total_db_size = db_stats.get("database_size_bytes", 0)
+            total_archive_size = archive_stats.get("total_archive_size_bytes", 0)
+            total_original_size = total_db_size + total_archive_size
+
+            if total_original_size == 0:
+                return 0.0
+
+            return (
+                (total_db_size / total_original_size)
+                if total_original_size > 0
+                else 0.0
+            )
+
+        except Exception as e:
+            self.logger.error(f"Failed to calculate compression ratio: {e}")
+            return 0.0
 
     # Legacy methods for compatibility
     def close(self) -> None:
@@ -314,6 +610,9 @@ class MemoryManager:
             and self._semantic_search is not None
             and self._context_aware_search is not None
             and self._timeline_search is not None
+            and self._compression_engine is not None
+            and self._archival_manager is not None
+            and self._retention_policy is not None
         )
 
 
@@ -322,7 +621,10 @@ __all__ = [
     "MemoryManager",
     "SQLiteManager",
     "VectorStore",
+    "CompressionEngine",
     "SemanticSearch",
     "ContextAwareSearch",
     "TimelineSearch",
+    "ArchivalManager",
+    "RetentionPolicy",
 ]
