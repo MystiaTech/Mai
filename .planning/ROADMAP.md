@@ -52,10 +52,10 @@ Mai's development is organized into three major milestones, each delivering dist
 - Proactively surface relevant context from memory
 
 **Plans:** 4 plans in 3 waves
-- [ ] 04-01-PLAN.md — Storage foundation with SQLite and sqlite-vec
-- [ ] 04-02-PLAN.md — Semantic search and context-aware retrieval
-- [ ] 04-03-PLAN.md — Progressive compression and JSON archival
-- [ ] 04-04-PLAN.md — Personality learning and adaptive layers
+- [x] 04-01-PLAN.md — Storage foundation with SQLite and sqlite-vec
+- [x] 04-02-PLAN.md — Semantic search and context-aware retrieval
+- [x] 04-03-PLAN.md — Progressive compression and JSON archival
+- [x] 04-04-PLAN.md — Personality learning and adaptive layers
 
 ### Phase 5: Conversation Engine
 - Multi-turn context preservation
