@@ -12,6 +12,7 @@ from .resource_monitor import ResourceMonitor
 from .context_manager import ContextManager
 from ..resource.scaling import ProactiveScaler, ScalingDecision
 from ..resource.tiers import HardwareTierDetector
+from ..resource.personality import ResourcePersonality, ResourceType
 
 
 class ModelManager:
@@ -61,6 +62,9 @@ class ModelManager:
 
         # Start continuous monitoring
         self._proactive_scaler.start_continuous_monitoring()
+
+        # Initialize personality system
+        self._personality = ResourcePersonality(sarcasm_level=0.7, gremlin_hunger=0.8)
 
         # Current model state
         self.current_model_key: Optional[str] = None
@@ -343,6 +347,104 @@ class ModelManager:
                 self.logger.error(f"Error during model switch: {e}")
                 return False
 
+    async def personality_aware_model_switch(
+        self,
+        target_model_key: str,
+        switch_reason: str = "resource optimization",
+        notify_user: bool = True,
+    ) -> Tuple[bool, Optional[str]]:
+        """Switch models with personality-driven communication.
+
+        Args:
+            target_model_key: Model to switch to
+            switch_reason: Reason for the switch
+            notify_user: Whether to notify user (only for downgrades)
+
+        Returns:
+            Tuple of (success, user_message_or_None)
+        """
+        try:
+            # Get model categories for capability comparison
+            old_config = self.model_configurations.get(self.current_model_key or "", {})
+            new_config = self.model_configurations.get(target_model_key, {})
+
+            old_capability = str(old_config.get("category", "unknown"))
+            new_capability = str(new_config.get("category", "unknown"))
+
+            # Determine if this is a downgrade
+            is_downgrade = self._is_capability_downgrade(old_capability, new_capability)
+
+            # Perform the actual switch
+            success = await self.switch_model(target_model_key)
+
+            if success and is_downgrade and notify_user:
+                # Generate personality-driven degradation notice
+                context = {
+                    "old_capability": old_capability,
+                    "new_capability": new_capability,
+                    "reason": switch_reason,
+                }
+
+                message, technical_tip = self._personality.generate_resource_message(
+                    ResourceType.DEGRADATION_NOTICE, context, include_technical_tip=True
+                )
+
+                # Combine message and optional tip
+                if technical_tip:
+                    full_message = f"{message}\n\n💡 *Technical tip*: {technical_tip}"
+                else:
+                    full_message = message
+
+                self.logger.info(f"Personality degradation notice: {full_message}")
+                return True, full_message
+
+            elif success:
+                # Silent upgrade - no notification per requirements
+                self.logger.debug(f"Silent upgrade to {target_model_key} completed")
+                return True, None
+
+            else:
+                # Failed switch - generate resource request message
+                context = {
+                    "resource": "model capability",
+                    "current_usage": 95,  # High usage when switches fail
+                    "threshold": 80,
+                }
+
+                message, technical_tip = self._personality.generate_resource_message(
+                    ResourceType.RESOURCE_REQUEST, context, include_technical_tip=True
+                )
+
+                if technical_tip:
+                    full_message = f"{message}\n\n💡 *Technical tip*: {technical_tip}"
+                else:
+                    full_message = message
+
+                return False, full_message
+
+        except Exception as e:
+            self.logger.error(f"Error in personality_aware_model_switch: {e}")
+            return False, "I'm... having trouble switching models right now..."
+
+    def _is_capability_downgrade(
+        self, old_capability: str, new_capability: str
+    ) -> bool:
+        """Check if switch represents a capability downgrade.
+
+        Args:
+            old_capability: Current model capability
+            new_capability: Target model capability
+
+        Returns:
+            True if this is a downgrade
+        """
+        capability_order = {"large": 3, "medium": 2, "small": 1, "unknown": 0}
+
+        old_level = capability_order.get(old_capability, 0)
+        new_level = capability_order.get(new_capability, 0)
+
+        return new_level < old_level
+
     async def generate_response(
         self,
         message: str,
@@ -372,18 +474,28 @@ class ModelManager:
                     )
                 )
                 if degradation_target:
-                    # Switch to smaller model for this response
+                    # Switch to smaller model with personality notification
                     smaller_model_key = self._find_model_by_size(degradation_target)
                     if (
                         smaller_model_key
                         and smaller_model_key != self.current_model_key
                     ):
-                        await self.switch_model(smaller_model_key)
-                        self.logger.info(
-                            f"Switched to smaller model {smaller_model_key} due to resource constraints"
+                        (
+                            success,
+                            personality_message,
+                        ) = await self.personality_aware_model_switch(
+                            smaller_model_key,
+                            f"Pre-flight check failed: {reason}",
+                            notify_user=True,
                         )
-                else:
-                    return "I'm experiencing resource constraints and cannot generate a response right now."
+
+                        # If personality message generated, include it in response
+                        if personality_message:
+                            return f"{personality_message}\n\nI'll try to help anyway with what I have..."
+                        else:
+                            return "Switching to a lighter model due to resource constraints..."
+                    else:
+                        return "I'm experiencing resource constraints and cannot generate a response right now."
 
             # Ensure we have a model loaded
             if not self.current_model_instance:
@@ -455,7 +567,26 @@ class ModelManager:
                         message, conversation_id, conversation_context
                     )
 
-                return "I'm experiencing difficulties generating a response. Please try again."
+                # Generate personality message for repeated failures
+                resources = self.resource_monitor.get_current_resources()
+                context = {
+                    "resource": "model stability",
+                    "current_usage": resources.get("memory_percent", 90),
+                    "threshold": 80,
+                }
+
+                personality_message, technical_tip = (
+                    self._personality.generate_resource_message(
+                        ResourceType.RESOURCE_REQUEST,
+                        context,
+                        include_technical_tip=True,
+                    )
+                )
+
+                if technical_tip:
+                    return f"{personality_message}\n\n💡 *Technical tip*: {technical_tip}\n\nPlease try again in a moment."
+                else:
+                    return f"{personality_message}\n\nPlease try again in a moment."
 
         except Exception as e:
             self.logger.error(f"Error in generate_response: {e}")
@@ -691,13 +822,17 @@ class ModelManager:
                     self.logger.info(
                         f"Executing proactive upgrade to {target_model_key}"
                     )
-                    # Schedule upgrade for next response (not immediate)
+                    # Schedule personality-aware upgrade (no notification)
                     asyncio.create_task(
-                        self._execute_proactive_upgrade(target_model_key)
+                        self.personality_aware_model_switch(
+                            target_model_key,
+                            "proactive scaling detected available resources",
+                            notify_user=False,
+                        )
                     )
 
             elif scaling_event.decision == ScalingDecision.DOWNGRADE:
-                # Immediate degradation to smaller model
+                # Immediate degradation to smaller model with personality notification
                 target_model_key = self._find_model_by_size(
                     scaling_event.new_model_size
                 )
@@ -705,8 +840,12 @@ class ModelManager:
                     self.logger.warning(
                         f"Executing degradation to {target_model_key}: {scaling_event.reason}"
                     )
-                    # Switch immediately for degradation
-                    asyncio.create_task(self.switch_model(target_model_key))
+                    # Use personality-aware switching for degradation
+                    asyncio.create_task(
+                        self.personality_aware_model_switch(
+                            target_model_key, scaling_event.reason, notify_user=True
+                        )
+                    )
 
         except Exception as e:
             self.logger.error(f"Error handling scaling decision: {e}")
