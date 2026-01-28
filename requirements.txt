@@ -9,3 +9,5 @@ docker>=7.0.0
 sqlite-vec>=0.1.0
 numpy>=1.24.0
 sentence-transformers>=2.2.2
+transformers>=4.21.0
+nltk>=3.8
