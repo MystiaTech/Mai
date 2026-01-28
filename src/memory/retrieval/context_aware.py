@@ -192,7 +192,11 @@ class ContextAwareSearch:
         return context
 
     def _calculate_topic_relevance(
-        self, result: SearchResult, current_topic: str, active_keywords: Set[str]
+        self,
+        result: SearchResult,
+        current_topic: str,
+        active_keywords: Set[str],
+        conversation_metadata: Optional[Dict[str, Any]] = None,
     ) -> float:
         """
         Calculate topic relevance score for a search result.
@@ -201,6 +205,7 @@ class ContextAwareSearch:
             result: SearchResult to score
             current_topic: Current conversation topic
             active_keywords: Keywords active in current conversation
+            conversation_metadata: Optional conversation metadata for enhanced analysis
 
         Returns:
             Topic relevance boost factor (1.0 = no boost, >1.0 = boosted)
@@ -224,8 +229,48 @@ class ContextAwareSearch:
         total_keywords = len(result_keywords) or 1
         keyword_boost = 1.0 + (keyword_overlap / total_keywords) * 0.3  # Max 30% boost
 
+        # Enhanced metadata-based boosts
+        metadata_boost = 1.0
+
+        if conversation_metadata:
+            # Topic information boost
+            topic_info = conversation_metadata.get("topic_info", {})
+            if topic_info.get("primary_topic") == current_topic:
+                metadata_boost *= 1.2  # 20% boost for matching primary topic
+
+            main_topics = topic_info.get("main_topics", [])
+            if current_topic in main_topics:
+                metadata_boost *= 1.1  # 10% boost for topic in main topics
+
+            # Engagement metrics boost
+            engagement = conversation_metadata.get("engagement_metrics", {})
+            message_count = engagement.get("message_count", 0)
+            avg_importance = engagement.get("avg_importance", 0)
+
+            if message_count > 10:  # Substantial conversation
+                metadata_boost *= 1.1
+            if avg_importance > 0.7:  # High importance
+                metadata_boost *= 1.15
+
+            # Temporal patterns boost (recent activity preferred)
+            temporal = conversation_metadata.get("temporal_patterns", {})
+            last_activity = temporal.get("last_activity")
+            if last_activity:
+                from datetime import datetime, timedelta
+
+                if last_activity > datetime.now() - timedelta(days=7):
+                    metadata_boost *= 1.2  # 20% boost for recent activity
+                elif last_activity > datetime.now() - timedelta(days=30):
+                    metadata_boost *= 1.1  # 10% boost for somewhat recent
+
+            # Context clues boost (related conversations)
+            context_clues = conversation_metadata.get("context_clues", {})
+            related_conversations = context_clues.get("related_conversations", [])
+            if related_conversations:
+                metadata_boost *= 1.05  # Small boost for conversations with context
+
         # Combined boost (limited to prevent over-boosting)
-        combined_boost = min(2.0, topic_boost * keyword_boost)
+        combined_boost = min(3.0, topic_boost * keyword_boost * metadata_boost)
 
         return float(combined_boost)
 
@@ -256,12 +301,44 @@ class ContextAwareSearch:
         topic = current_topic or context["current_topic"]
         active_keywords = context["active_keywords"]
 
+        # Get conversation metadata for enhanced analysis
+        conversation_metadata = {}
+        if conversation_id:
+            try:
+                # Extract conversation IDs from results to get their metadata
+                result_conversation_ids = list(
+                    set(
+                        [
+                            result.conversation_id
+                            for result in results
+                            if result.conversation_id
+                        ]
+                    )
+                )
+
+                if result_conversation_ids:
+                    conversation_metadata = (
+                        self.sqlite_manager.get_conversation_metadata(
+                            result_conversation_ids
+                        )
+                    )
+            except Exception as e:
+                self.logger.error(f"Failed to get conversation metadata: {e}")
+
         # Apply topic relevance scoring
         scored_results = []
         for result in results:
-            # Calculate topic relevance boost
+            # Get metadata for this result's conversation
+            result_metadata = None
+            if (
+                result.conversation_id
+                and result.conversation_id in conversation_metadata
+            ):
+                result_metadata = conversation_metadata[result.conversation_id]
+
+            # Calculate topic relevance boost with metadata
             topic_boost = self._calculate_topic_relevance(
-                result, topic, active_keywords
+                result, topic, active_keywords, result_metadata
             )
 
             # Apply boost to relevance score
@@ -269,7 +346,7 @@ class ContextAwareSearch:
 
             # Update result with boosted score
             result.relevance_score = boosted_score
-            result.search_type = "context_aware"
+            result.search_type = "context_aware_enhanced"
 
             scored_results.append(result)
 
@@ -278,7 +355,8 @@ class ContextAwareSearch:
 
         self.logger.info(
             f"Prioritized {len(results)} results for topic '{topic}' "
-            f"with active keywords: {len(active_keywords)}"
+            f"with active keywords: {len(active_keywords)} and "
+            f"{len(conversation_metadata)} conversations with metadata"
         )
 
         return scored_results
@@ -287,23 +365,38 @@ class ContextAwareSearch:
         self, conversation_id: str, limit: int = 20
     ) -> Dict[str, Any]:
         """
-        Get topic summary for a conversation.
+        Get topic summary for a conversation with enhanced metadata analysis.
 
         Args:
             conversation_id: ID of conversation to analyze
             limit: Number of messages to analyze
 
         Returns:
-            Dictionary with topic analysis
+            Dictionary with comprehensive topic analysis
         """
         try:
-            # Get recent messages
+            # Get conversation metadata for comprehensive analysis
+            try:
+                metadata = self.sqlite_manager.get_conversation_metadata(
+                    [conversation_id]
+                )
+                conv_metadata = metadata.get(conversation_id, {})
+            except Exception as e:
+                self.logger.error(f"Failed to get conversation metadata: {e}")
+                conv_metadata = {}
+
+            # Get recent messages for content analysis
             messages = self.sqlite_manager.get_recent_messages(
                 conversation_id, limit=limit
             )
 
             if not messages:
-                return {"topic": "general", "keywords": [], "message_count": 0}
+                return {
+                    "topic": "general",
+                    "keywords": [],
+                    "message_count": 0,
+                    "metadata_enhanced": False,
+                }
 
             # Combine all message content
             all_text = " ".join([msg.get("content", "") for msg in messages])
@@ -318,17 +411,72 @@ class ContextAwareSearch:
                 msg_topic = self._classify_topic(msg.get("content", ""))
                 topic_distribution[msg_topic] = topic_distribution.get(msg_topic, 0) + 1
 
-            return {
+            # Build enhanced summary with metadata
+            summary = {
                 "primary_topic": topic,
                 "all_keywords": keywords,
                 "message_count": len(messages),
                 "topic_distribution": topic_distribution,
                 "recent_focus": topic if len(messages) >= 5 else "general",
+                "metadata_enhanced": bool(conv_metadata),
             }
+
+            # Add metadata-enhanced insights if available
+            if conv_metadata:
+                # Topic information from metadata
+                topic_info = conv_metadata.get("topic_info", {})
+                summary["stored_topics"] = {
+                    "main_topics": topic_info.get("main_topics", []),
+                    "primary_topic": topic_info.get("primary_topic", "general"),
+                    "topic_frequency": topic_info.get("topic_frequency", {}),
+                    "topic_sentiment": topic_info.get("topic_sentiment", {}),
+                }
+
+                # Engagement insights
+                engagement = conv_metadata.get("engagement_metrics", {})
+                summary["engagement_insights"] = {
+                    "total_messages": engagement.get("message_count", 0),
+                    "user_message_ratio": engagement.get("user_message_ratio", 0),
+                    "avg_importance": engagement.get("avg_importance", 0),
+                    "conversation_duration_minutes": engagement.get(
+                        "conversation_duration_seconds", 0
+                    )
+                    / 60,
+                }
+
+                # Temporal patterns
+                temporal = conv_metadata.get("temporal_patterns", {})
+                if temporal.get("most_common_hour") is not None:
+                    summary["temporal_patterns"] = {
+                        "most_active_hour": temporal.get("most_common_hour"),
+                        "most_active_day": temporal.get("most_common_day"),
+                        "last_activity": temporal.get("last_activity"),
+                    }
+
+                # Context clues
+                context_clues = conv_metadata.get("context_clues", {})
+                related_conversations = context_clues.get("related_conversations", [])
+                if related_conversations:
+                    summary["related_contexts"] = [
+                        {
+                            "id": rel["id"],
+                            "title": rel["title"],
+                            "relationship": rel["relationship"],
+                        }
+                        for rel in related_conversations[:3]  # Top 3 related
+                    ]
+
+            return summary
 
         except Exception as e:
             self.logger.error(f"Failed to get topic summary: {e}")
-            return {"topic": "general", "keywords": [], "message_count": 0}
+            return {
+                "topic": "general",
+                "keywords": [],
+                "message_count": 0,
+                "metadata_enhanced": False,
+                "error": str(e),
+            }
 
     def suggest_related_topics(self, query: str, limit: int = 3) -> List[str]:
         """
