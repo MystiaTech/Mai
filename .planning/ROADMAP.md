@@ -51,11 +51,15 @@ Mai's development is organized into three major milestones, each delivering dist
 - Distill long-term patterns into personality layers
 - Proactively surface relevant context from memory
 
-**Plans:** 4 plans in 3 waves
+**Status:** 3 gap closure plans needed to complete integration
+**Plans:** 7 plans in 4 waves
 - [x] 04-01-PLAN.md — Storage foundation with SQLite and sqlite-vec
 - [x] 04-02-PLAN.md — Semantic search and context-aware retrieval
 - [x] 04-03-PLAN.md — Progressive compression and JSON archival
 - [x] 04-04-PLAN.md — Personality learning and adaptive layers
+- [ ] 04-05-PLAN.md — Personality learning integration gap closure
+- [ ] 04-06-PLAN.md — Vector Store missing methods gap closure
+- [ ] 04-07-PLAN.md — Context-aware search metadata gap closure
 
 ### Phase 5: Conversation Engine
 - Multi-turn context preservation
