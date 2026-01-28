@@ -6,6 +6,6 @@ for conversation persistence and semantic search.
 """
 
 from .sqlite_manager import SQLiteManager
-# from .vector_store import VectorStore  # Will be added in Task 2
+from .vector_store import VectorStore
 
 __all__ = ["SQLiteManager", "VectorStore"]
