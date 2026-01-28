@@ -839,6 +839,56 @@ class PatternExtractor:
 
         return (conversation_coverage + hour_coverage + session_coverage) / 3
 
+    def extract_conversation_patterns(self, messages: List[Any]) -> Dict[str, Any]:
+        """
+        Extract all pattern types from conversation messages.
+
+        Args:
+            messages: List of message objects from conversation
+
+        Returns:
+            Dictionary with all pattern types and their results
+        """
+        try:
+            self.logger.info(f"Extracting patterns from {len(messages)} messages")
+
+            # Extract all pattern types
+            topic_patterns = self.extract_topic_patterns(messages)
+            sentiment_patterns = self.extract_sentiment_patterns(messages)
+            interaction_patterns = self.extract_interaction_patterns(messages)
+            temporal_patterns = self.extract_temporal_patterns(messages)
+            response_style_patterns = self.extract_response_style_patterns(messages)
+
+            # Combine all patterns
+            all_patterns = {
+                "topic_patterns": topic_patterns,
+                "sentiment_patterns": sentiment_patterns,
+                "interaction_patterns": interaction_patterns,
+                "temporal_patterns": temporal_patterns,
+                "response_style_patterns": response_style_patterns,
+            }
+
+            # Calculate overall confidence score
+            all_confidences = [
+                getattr(topic_patterns, "confidence_score", 0.5),
+                getattr(sentiment_patterns, "confidence_score", 0.5),
+                getattr(interaction_patterns, "confidence_score", 0.5),
+                getattr(temporal_patterns, "confidence_score", 0.5),
+                getattr(response_style_patterns, "confidence_score", 0.5),
+            ]
+            all_patterns["overall_confidence"] = sum(all_confidences) / len(
+                all_confidences
+            )
+
+            self.logger.info(
+                f"Pattern extraction complete, overall confidence: {all_patterns['overall_confidence']:.3f}"
+            )
+            return all_patterns
+
+        except Exception as e:
+            self.logger.error(f"Failed to extract conversation patterns: {e}")
+            return {}
+
     def _calculate_style_confidence(self, messages: int, formality_data: int) -> float:
         """Calculate confidence score for style patterns."""
         if messages == 0:
