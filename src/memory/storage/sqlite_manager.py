@@ -384,6 +384,90 @@ class SQLiteManager:
             self.logger.error(f"Failed to get recent conversations: {e}")
             raise
 
+    def get_conversations_by_date_range(
+        self, start_date: datetime, end_date: datetime
+    ) -> List[Dict[str, Any]]:
+        """
+        Get all conversations created within a date range.
+
+        Args:
+            start_date: Start of date range (inclusive)
+            end_date: End of date range (inclusive)
+
+        Returns:
+            List of conversations within the date range
+        """
+        try:
+            conn = self._get_connection()
+            cursor = conn.cursor()
+            query = """
+                SELECT id, title, created_at, updated_at, metadata, session_id,
+                       total_messages, total_tokens
+                FROM conversations
+                WHERE created_at BETWEEN ? AND ?
+                ORDER BY created_at DESC
+            """
+            cursor.execute(query, (start_date.isoformat(), end_date.isoformat()))
+            rows = cursor.fetchall()
+            conversations = []
+            for row in rows:
+                conv_dict = {
+                    "id": row[0],
+                    "title": row[1],
+                    "created_at": row[2],
+                    "updated_at": row[3],
+                    "metadata": json.loads(row[4]) if row[4] else {},
+                    "session_id": row[5],
+                    "total_messages": row[6],
+                    "total_tokens": row[7],
+                }
+                conversations.append(conv_dict)
+            return conversations
+        except Exception as e:
+            self.logger.error(f"Failed to get conversations by date range: {e}")
+            return []
+
+    def get_conversation_messages(self, conversation_id: str) -> List[Dict[str, Any]]:
+        """
+        Get all messages for a conversation.
+
+        Args:
+            conversation_id: Conversation ID to retrieve messages for
+
+        Returns:
+            List of messages ordered by timestamp (oldest first)
+        """
+        try:
+            conn = self._get_connection()
+            cursor = conn.cursor()
+            query = """
+                SELECT id, conversation_id, role, content, timestamp,
+                       token_count, importance_score, metadata, embedding_id
+                FROM messages
+                WHERE conversation_id = ?
+                ORDER BY timestamp ASC
+            """
+            cursor.execute(query, (conversation_id,))
+            rows = cursor.fetchall()
+            messages = []
+            for row in rows:
+                msg_dict = {
+                    "id": row[0],
+                    "conversation_id": row[1],
+                    "role": row[2],
+                    "content": row[3],
+                    "timestamp": row[4],
+                    "token_count": row[5],
+                    "importance_score": row[6],
+                    "metadata": json.loads(row[7]) if row[7] else {},
+                    "embedding_id": row[8],
+                }
+                messages.append(msg_dict)
+            return messages
+        except Exception as e:
+            self.logger.error(f"Failed to get conversation messages: {e}")
+            return []
+
     def get_messages_by_role(
         self, conversation_id: str, role: str, limit: Optional[int] = None
     ) -> List[Dict[str, Any]]:
