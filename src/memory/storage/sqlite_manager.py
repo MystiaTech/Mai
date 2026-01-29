@@ -139,6 +139,7 @@ class SQLiteManager:
             """)
 
             conn.commit()
+            conn.close()
             self.logger.info(f"Database initialized: {self.db_path}")
 
         except Exception as e:
@@ -165,6 +166,19 @@ class SQLiteManager:
             metadata: Optional metadata dictionary
         """
         conn = self._get_connection()
+
+        # Check if tables exist before using them
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='conversations'"
+        )
+        if not cursor.fetchone():
+            conn.rollback()
+            conn.close()
+            raise RuntimeError(
+                "Database tables not initialized. Call initialize() first."
+            )
+        cursor.close()
         try:
             conn.execute(
                 """

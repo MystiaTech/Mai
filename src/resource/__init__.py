@@ -10,8 +10,19 @@ Key components:
 - ResourcePersonality: Communicates resource status in Mai's personality voice
 """
 
-from .tiers import HardwareTierDetector
+# Import resource components safely to avoid circular imports
+try:
+    from .tiers import HardwareTierDetector
+    from .scaling import ProactiveScaler, ScalingDecision
+    from .personality import ResourcePersonality, ResourceType
 
-__all__ = [
-    "HardwareTierDetector",
-]
+    __all__ = [
+        "HardwareTierDetector",
+        "ProactiveScaler",
+        "ScalingDecision",
+        "ResourcePersonality",
+        "ResourceType",
+    ]
+except ImportError as e:
+    print(f"Warning: Could not import resource components: {e}")
+    __all__ = []

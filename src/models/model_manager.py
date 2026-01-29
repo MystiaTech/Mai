@@ -10,9 +10,34 @@ from pathlib import Path
 from .lmstudio_adapter import LMStudioAdapter
 from .resource_monitor import ResourceMonitor
 from .context_manager import ContextManager
-from ..resource.scaling import ProactiveScaler, ScalingDecision
-from ..resource.tiers import HardwareTierDetector
-from ..resource.personality import ResourcePersonality, ResourceType
+
+# Fix circular imports by importing within functions
+ProactiveScaler = None
+ScalingDecision = None
+HardwareTierDetector = None
+ResourcePersonality = None
+ResourceType = None
+
+
+def _get_scaling_components():
+    global ProactiveScaler, ScalingDecision
+    if ProactiveScaler is None:
+        from resource.scaling import ProactiveScaler, ScalingDecision
+    return ProactiveScaler, ScalingDecision
+
+
+def _get_tier_components():
+    global HardwareTierDetector
+    if HardwareTierDetector is None:
+        from resource.tiers import HardwareTierDetector
+    return HardwareTierDetector
+
+
+def _get_personality_components():
+    global ResourcePersonality, ResourceType
+    if ResourcePersonality is None:
+        from resource.personality import ResourcePersonality, ResourceType
+    return ResourcePersonality, ResourceType
 
 
 class ModelManager:
@@ -42,9 +67,25 @@ class ModelManager:
         self.lm_adapter = LMStudioAdapter()
         self.resource_monitor = ResourceMonitor()
         self.context_manager = ContextManager()
-        self.tier_detector = HardwareTierDetector()
+
+        # Get components safely
+        tier_components = _get_tier_components()
+        if tier_components is not None:
+            HardwareTierDetector = tier_components
+        else:
+            # Fallback to direct import if lazy loading fails
+            from resource.tiers import HardwareTierDetector
+
+            self.tier_detector = HardwareTierDetector()
 
         # Initialize proactive scaler
+        scaling_components = _get_scaling_components()
+        if scaling_components is not None:
+            ProactiveScaler, ScalingDecision = scaling_components
+        else:
+            # Fallback to direct import if lazy loading fails
+            from resource.scaling import ProactiveScaler, ScalingDecision
+
         self._proactive_scaler = ProactiveScaler(
             resource_monitor=self.resource_monitor,
             tier_detector=self.tier_detector,
@@ -64,6 +105,14 @@ class ModelManager:
         self._proactive_scaler.start_continuous_monitoring()
 
         # Initialize personality system
+        # Get personality components safely
+        personality_components = _get_personality_components()
+        if personality_components is not None:
+            ResourcePersonality, ResourceType = personality_components
+        else:
+            # Fallback to direct import if lazy loading fails
+            from resource.personality import ResourcePersonality, ResourceType
+
         self._personality = ResourcePersonality(sarcasm_level=0.7, gremlin_hunger=0.8)
 
         # Current model state

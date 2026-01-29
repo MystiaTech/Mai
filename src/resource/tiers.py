@@ -6,7 +6,7 @@ import logging
 from typing import Dict, List, Optional, Any, Tuple
 from pathlib import Path
 
-from ..models.resource_monitor import ResourceMonitor
+from models.resource_monitor import ResourceMonitor
 
 
 class HardwareTierDetector:
