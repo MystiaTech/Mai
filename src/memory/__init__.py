@@ -20,7 +20,7 @@ from .personality.layer_manager import (
     LayerType,
     LayerPriority,
 )
-from .personality.adaptation import PersonalityAdaptation, AdaptationConfig
+from .personality.adaptation import PersonalityAdaptation, AdaptationConfig, AdaptationRate
 
 from typing import Optional, List, Dict, Any, Union, Tuple
 from datetime import datetime
