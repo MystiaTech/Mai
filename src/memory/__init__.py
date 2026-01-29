@@ -872,5 +872,6 @@ __all__ = [
     "LayerPriority",
     "PersonalityAdaptation",
     "AdaptationConfig",
+    "AdaptationRate",
     "PersonalityLearner",
 ]
